@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>ChatFat</title>
+<!-- Inline SVG data URI: no external asset, per SPEC §13.1.2. -->
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='10' fill='%23b2622d'/%3E%3Cpath d='M9 20V13a7 7 0 0 1 14 0v7' fill='none' stroke='%23f5ead8' stroke-width='3' stroke-linecap='round'/%3E%3Crect x='7' y='19' width='18' height='7' rx='3' fill='%23f5ead8'/%3E%3C/svg%3E">
+<link rel="preload" as="font" type="font/woff2" href="fonts/fraunces-latin-var.woff2" crossorigin>
+<link rel="preload" as="font" type="font/woff2" href="fonts/source-sans-3-latin-var.woff2" crossorigin>
+<link rel="stylesheet" href="style.css">
+<script>
+  // Applied before first paint so the page never flashes the wrong theme.
+  try {
+    var t = localStorage.getItem('sb-theme');
+    if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+  } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- ══ A · Join ═══════════════════════════════════════════════════════════ -->
+<section id="join" class="cf-join">
+  <div class="cf-join-card">
+    <div class="cf-eyebrow">Lab LAN · four machines</div>
+    <h1 class="cf-wordmark">ChatFat</h1>
+    <p class="cf-tagline" id="join-tagline">Pick a name and start talking. Nothing here is stored.</p>
+
+    <form class="cf-form" id="join-form" autocomplete="off">
+      <div class="cf-alert" id="join-error" role="alert" hidden></div>
+
+      <div class="cf-field">
+        <label for="join-name" id="join-name-label">Your name</label>
+        <input class="cf-input" id="join-name" name="username" maxlength="16" autocomplete="username" spellcheck="false" placeholder="kavya">
+        <div class="cf-hint" id="join-name-hint">2–16 characters. Taken names are refused, so everyone is unambiguous.</div>
+      </div>
+
+      <div class="cf-field" id="join-pw-field" hidden>
+        <label for="join-pw">Password</label>
+        <div class="cf-pw">
+          <input class="cf-input" id="join-pw" name="password" type="password" autocomplete="current-password">
+          <button class="cf-btn cf-btn-ghost rev" type="button" id="join-pw-rev" aria-label="Show the password">Show</button>
+        </div>
+        <div class="cf-hint">At least 8 characters. Hashed on the server; the plaintext is never stored.</div>
+      </div>
+
+      <button class="cf-btn cf-btn-primary" id="join-submit" type="submit" style="width:100%">Connect</button>
+
+      <div class="cf-switch" id="join-switch" hidden>
+        <span id="join-switch-text">No account yet?</span>
+        <button type="button" id="join-switch-btn">Create one</button>
+      </div>
+    </form>
+
+    <div class="cf-status">
+      <span class="cf-dot" id="join-dot"></span>
+      <span id="join-state">Checking the server…</span>
+      <span class="url" id="join-url"></span>
+    </div>
+  </div>
+</section>
+
+<!-- ══ B · Lobby ══════════════════════════════════════════════════════════ -->
+<section id="lobby" hidden>
+  <div class="cf-top">
+    <div class="cf-brand">ChatFat <span class="slash">/ lobby</span></div>
+    <div class="spacer"></div>
+    <div class="cf-chip" id="lobby-me">—</div>
+    <button class="cf-btn cf-btn-icon theme-btn" type="button" title="Theme" aria-label="Switch theme">
+      <svg class="svg" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path></svg>
+    </button>
+  </div>
+
+  <div class="cf-lobby">
+    <div class="cf-lobby-inner">
+      <div class="cf-eyebrow">Pick a room</div>
+      <h2 class="cf-h">Where are you talking today?</h2>
+      <p class="cf-blurb" id="lobby-blurb">You see what is said while you are in a room, and nothing else — this server replays no history when you join.</p>
+
+      <form class="cf-create" id="create-form" autocomplete="off">
+        <input class="cf-input" id="create-name" maxlength="24" placeholder="Name a new room…" aria-label="New room name">
+        <label class="cf-lock-toggle" id="create-lock-label">
+          <input type="checkbox" id="create-lock">
+          <span class="cf-toggle" id="create-toggle" aria-hidden="true"></span>
+          Lock this room
+        </label>
+        <button class="cf-btn cf-btn-primary" type="submit">Create</button>
+      </form>
+
+      <div class="cf-lockbar" id="create-lockbar" hidden>
+        <div class="cf-lockbar-head">
+          <svg class="svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="3"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Passphrase for this room
+        </div>
+        <div class="cf-pw">
+          <input class="cf-input" id="create-pass" type="password" autocomplete="new-password" aria-label="Room passphrase">
+          <button class="cf-btn cf-btn-ghost rev" type="button" id="create-pass-rev">Show</button>
+        </div>
+        <div class="cf-meter" id="create-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="cf-hint">At least 10 characters — the server stores a one-way verifier, and a short passphrase can be guessed against it offline. Everyone you tell can read the room; nobody else can, including the server.</div>
+      </div>
+
+      <div class="cf-alert" id="lobby-error" role="alert" hidden></div>
+
+      <div class="cf-sectlabel"><h6>Available</h6><span id="lobby-count">—</span></div>
+      <div id="spotlight-slot"></div>
+
+      <div class="cf-sectlabel" id="all-label" hidden><h6>All rooms</h6><span>sorted busiest first</span></div>
+      <div class="cf-rooms" id="room-grid"></div>
+      <div class="cf-empty" id="lobby-empty" hidden>No rooms yet — name one above to make the first.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ C · Chat shell ═════════════════════════════════════════════════════ -->
+<section id="app" hidden>
+  <div class="cf-top">
+    <button class="cf-btn cf-btn-icon cf-hamb" type="button" id="hamb" aria-label="Show the roster" aria-expanded="false">
+      <svg class="svg" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"></path></svg>
+    </button>
+    <div class="cf-brand">ChatFat <span class="slash" id="app-room">/ —</span></div>
+
+    <span class="cf-chip cf-chip-seal" id="key-chip" hidden title="Compare this with another member out loud — same fingerprint, same key.">
+      <svg class="svg" width="12" height="12" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="3"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <span class="mono" id="key-fp">locked</span>
+    </span>
+
+    <button class="cf-btn cf-btn-secondary cf-btn-sm" type="button" id="share">
+      <svg class="svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path><path d="M12 3v13M8 7l4-4 4 4"></path></svg>
+      <span class="label-hide">Share</span>
+    </button>
+    <button class="cf-btn cf-btn-ghost" type="button" id="leave">
+      <svg class="svg" width="14" height="14" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"></path></svg>
+      <span class="label-hide">Leave room</span>
+    </button>
+
+    <div class="spacer"></div>
+
+    <div class="cf-spark"><canvas id="spark" width="128" height="40" aria-hidden="true"></canvas><span id="rtt">— ms</span></div>
+    <div class="cf-pill" id="pill"><span class="cf-dot"></span><span id="pill-text">connecting</span></div>
+    <button class="cf-btn cf-btn-icon theme-btn" type="button" title="Theme" aria-label="Switch theme">
+      <svg class="svg" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path></svg>
+    </button>
+  </div>
+
+  <div class="cf-body">
+    <aside class="cf-side" id="side">
+      <h6>In the room <b id="roster-count">0</b></h6>
+      <div class="cf-roster" id="roster"></div>
+
+      <div class="cf-cmds">
+        <h6 id="cmds-title">Commands</h6>
+        <ul id="cmds">
+          <li><code>/poll</code>ask the room</li>
+          <li><code>/burn 30</code>self-destructing</li>
+          <li><code>/w name</code>private message</li>
+          <li><code>/lock</code>encrypt this room</li>
+          <li><code>/help</code>everything else</li>
+        </ul>
+      </div>
+
+      <div class="cf-side-foot" id="side-foot">
+        <span class="cf-av" id="me-av">··</span>
+        <span class="nm" id="me-name">—</span>
+        <span class="st" id="me-state">connected</span>
+      </div>
+    </aside>
+
+    <main class="cf-main">
+      <div class="cf-log" id="log" role="log" aria-live="polite" aria-label="Messages"></div>
+      <button class="cf-jump" id="jump" hidden>↓ <span id="jump-n">0</span> new</button>
+      <div class="cf-ac" id="ac" hidden role="listbox" aria-label="Commands"></div>
+
+      <div class="cf-underlog">
+        <div class="cf-typing" id="typing"></div>
+        <div class="cf-replybar" id="replybar" hidden>
+          <b id="reply-who">Replying to</b>
+          <span class="txt" id="reply-text"></span>
+          <button class="x" type="button" id="reply-cancel" aria-label="Cancel the reply">
+            <svg class="svg" width="13" height="13" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </button>
+        </div>
+        <form class="cf-composer" id="composer">
+          <textarea id="input" rows="1" maxlength="4000" placeholder="Message…" aria-label="Message"></textarea>
+          <span class="cf-count" id="count" hidden>0</span>
+          <button class="cf-btn cf-btn-primary cf-btn-icon cf-send" id="send" type="submit" aria-label="Send">
+            <svg class="svg" width="17" height="17" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+          </button>
+        </form>
+      </div>
+    </main>
+  </div>
+</section>
+
+<!-- ══ Key-entry modal (§14.9) ════════════════════════════════════════════ -->
+<div class="cf-backdrop" id="keymodal" hidden>
+  <div class="cf-modal" role="dialog" aria-modal="true" aria-labelledby="km-title">
+    <h3 id="km-title">
+      <svg class="svg" width="19" height="19" viewBox="0 0 24 24" style="color:var(--seal)" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="3"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <span id="km-room">this room</span> is locked
+    </h3>
+    <p class="lede">Ask someone in the room for the passphrase. It is never sent to the server — your browser turns it into the key.</p>
+
+    <div class="cf-facts">
+      <div><span class="y">Yes</span><span>Only people with the passphrase can read what is said here. The server cannot.</span></div>
+      <div><span class="n">No</span><span>Who is in the room, when they type and how often is still visible to the server.</span></div>
+    </div>
+
+    <form class="cf-field" id="km-form" autocomplete="off">
+      <label for="km-pass">Passphrase</label>
+      <div class="cf-pw">
+        <input class="cf-input" id="km-pass" type="password" autocomplete="off" aria-describedby="km-error">
+        <button class="cf-btn cf-btn-ghost rev" type="button" id="km-rev">Show</button>
+      </div>
+      <div class="cf-alert" id="km-error" role="alert" hidden></div>
+    </form>
+
+    <label class="cf-check">
+      <input type="checkbox" id="km-remember">
+      <span class="cf-box" aria-hidden="true"></span>
+      <span>Remember this key on this device.<br><span style="color:var(--faint)">Anyone with access to this browser profile can then read this room.</span></span>
+    </label>
+
+    <div class="cf-modal-actions">
+      <button class="cf-btn cf-btn-ghost" type="button" id="km-leave">Leave instead</button>
+      <button class="cf-btn cf-btn-primary" type="submit" form="km-form" id="km-unlock" style="background:var(--seal)">Unlock</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ Lock-a-room modal (/lock) ══════════════════════════════════════════ -->
+<div class="cf-backdrop" id="lockmodal" hidden>
+  <div class="cf-modal" role="dialog" aria-modal="true" aria-labelledby="lm-title">
+    <h3 id="lm-title">
+      <svg class="svg" width="19" height="19" viewBox="0 0 24 24" style="color:var(--seal)" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="3"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+      <span id="lm-heading">Lock this room</span>
+    </h3>
+    <p class="lede" id="lm-lede">Everyone who wants to read this room from now on needs this passphrase. It is never sent to the server. A locked room can never be turned back into a plaintext one.</p>
+
+    <form class="cf-field" id="lm-form" autocomplete="off">
+      <label for="lm-pass">Passphrase</label>
+      <div class="cf-pw">
+        <input class="cf-input" id="lm-pass" type="password" autocomplete="new-password">
+        <button class="cf-btn cf-btn-ghost rev" type="button" id="lm-rev">Show</button>
+      </div>
+      <div class="cf-meter" id="lm-meter" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+      <div class="cf-hint">At least 10 characters. The server stores a one-way verifier, and a short passphrase can be guessed against it offline.</div>
+      <div class="cf-alert" id="lm-error" role="alert" hidden></div>
+    </form>
+
+    <div class="cf-modal-actions">
+      <button class="cf-btn cf-btn-ghost" type="button" id="lm-cancel">Cancel</button>
+      <button class="cf-btn cf-btn-primary" type="submit" form="lm-form" style="background:var(--seal)">Lock the room</button>
+    </div>
+  </div>
+</div>
+
+<!-- assertive, per SPEC §13.1.6: a toast is the only place a rejection lands
+     once the socket is up, so a screen reader must not wait its turn. -->
+<div class="cf-toasts" id="toasts" aria-live="assertive" aria-atomic="false"></div>
+
+<script src="crypto.js"></script>
+<script src="client.js"></script>
+</body>
+</html>

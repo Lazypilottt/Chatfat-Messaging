@@ -1,0 +1,760 @@
+/* ChatFat — one hand-written stylesheet. No build step, no framework, no
+   external request: the three faces below are self-hosted in public/fonts/
+   (same origin, so `font-src 'self'` is the only CSP line they need), and the
+   favicon is an inline SVG data URI in index.html.
+
+   Phase 10 re-derives the type and the colour on top of the existing token
+   structure. What changed, and why:
+
+   10a · TYPE.  Body copy was system-ui — a neutral grotesque, the opposite of
+   organic — while a --serif token sat almost unused. Now three real faces do
+   three real jobs: FRAUNCES (variable, with the SOFT and WONK axes that exist
+   precisely to make letterforms less mechanical) for display, ≥20.5px only;
+   SOURCE SANS 3 (humanist, open apertures, calligraphic stroke) for UI and the
+   dense message log; IBM PLEX MONO with its `zero` feature on for fingerprints,
+   safety numbers and every timestamp. One 1.2-ratio scale, 12 → 42.5, declared
+   as tokens; there are no off-scale sizes in this file.
+
+   10b · COLOUR.  The brand is unchanged — cream ground, terracotta, sage, and a
+   plum reserved entirely for encryption. Three defects are fixed:
+     · Security no longer borrows brand colour. --verified / --pending / --tamper
+       are their own scale; --seal still means encryption and nothing else;
+       --alert is now only ever "your input is wrong", never "this may be forged".
+     · Dark is a theme, not a darkening. The grounds shift hue to a warm charcoal
+       with a green-brown undertone, and every accent is desaturated as it is
+       lightened, then re-audited against the new grounds.
+     · Elevation is defined, not implied: --e1…--e4 pair a shadow with a ring,
+       so a card, a popover and a modal are distinguishable without reading them.
+   Plus a radius scale, a motion scale, and a contrast audit at ≥4.5:1 for every
+   text pairing in BOTH themes. Numbers are in docs/DESIGN-SYSTEM.md.
+
+   Dark is declared TWICE — once behind prefers-color-scheme guarded against an
+   explicit light choice, once for an explicit dark choice — so a toggle wins in
+   both directions (SPEC §13.1.1). No colour is ever defined only inside a media
+   query. */
+
+/* ══ faces ═══════════════════════════════════════════════════════════════ */
+
+/* Display · Fraunces variable (opsz 9–144, wght, SOFT 0–100, WONK 0–1). */
+@font-face{
+  font-family:"Fraunces";
+  font-style:normal;font-weight:300 700;font-display:swap;
+  src:url("fonts/fraunces-latin-var.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Text · Source Sans 3 variable, roman + true italic, latin and latin-ext.
+   The latin-ext file is unicode-range gated, so an English session never
+   downloads it and a name with a caron never falls back mid-word. */
+@font-face{
+  font-family:"Source Sans 3";
+  font-style:normal;font-weight:200 900;font-display:swap;
+  src:url("fonts/source-sans-3-latin-var.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+@font-face{
+  font-family:"Source Sans 3";
+  font-style:normal;font-weight:200 900;font-display:swap;
+  src:url("fonts/source-sans-3-latin-ext-var.woff2") format("woff2");
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;
+}
+@font-face{
+  font-family:"Source Sans 3";
+  font-style:italic;font-weight:200 900;font-display:swap;
+  src:url("fonts/source-sans-3-latin-italic-var.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;
+}
+
+/* Mono · IBM Plex Mono, subset from the upstream OFL build rather than the
+   Google web subset, because the web subset drops the `zero` feature — and a
+   key fingerprint that cannot tell 0 from O is worse than no fingerprint. */
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-style:normal;font-weight:400;font-display:swap;
+  src:url("fonts/ibm-plex-mono-latin-400.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2190-2193,U+2212,U+2215;
+}
+@font-face{
+  font-family:"IBM Plex Mono";
+  font-style:normal;font-weight:600;font-display:swap;
+  src:url("fonts/ibm-plex-mono-latin-600.woff2") format("woff2");
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+2000-206F,U+20AC,U+2122,U+2190-2193,U+2212,U+2215;
+}
+
+/* ══ tokens · type, space, radius, motion (theme-independent) ════════════ */
+
+:root{
+  /* families. --serif is kept as an alias: it is the name the SPEC used. */
+  --display:"Fraunces",ui-serif,Georgia,"Iowan Old Style","Palatino Linotype",Palatino,serif;
+  --sans:"Source Sans 3",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --serif:var(--display);
+
+  /* Fraunces' organic axes. SOFT rounds the terminals; WONK swaps in the
+     less-regular alternates. This is the whole reason the face was chosen. */
+  --organic:"SOFT" 38,"WONK" 1;
+
+  /* one 1.2-ratio scale. Nothing in this file sets a size outside it. */
+  --fs-1:12px;   --fs-2:14px;   --fs-3:15.5px; --fs-4:17px;   --fs-5:20.5px;
+  --fs-6:24.5px; --fs-7:29.5px; --fs-8:35.5px; --fs-9:42.5px;
+
+  --lh-display:1.08;  /* 29.5px and up      */
+  --lh-head:1.2;      /* 20.5–24.5px        */
+  --lh-log:1.45;      /* the message log    */
+  --lh-ui:1.35;       /* single-line chrome */
+  --lh-prose:1.6;     /* paragraphs         */
+
+  --ls-display:-.022em;  /* display sizes close up          */
+  --ls-caps:.12em;       /* uppercase micro-labels open out */
+  --measure:65ch;        /* prose never runs wider          */
+
+  /* 4px spine. */
+  --s-1:4px;  --s-2:8px;  --s-3:12px; --s-4:16px;
+  --s-5:24px; --s-6:32px; --s-7:40px; --s-8:56px;
+
+  /* radius. Organic means CONSISTENTLY soft, not randomly rounded. */
+  --r-1:8px; --r-2:12px; --r-3:18px; --r-4:24px; --r-5:32px;
+  --r-pill:999px; --r-circle:50%;
+
+  /* motion. One curve, four durations. Every animation is wrapped in a
+     prefers-reduced-motion guard; the blanket override at the foot of the
+     file is the backstop, not the only defence. */
+  --ease:cubic-bezier(.2,.75,.25,1);
+  --dur-1:120ms;  /* colour, hover        */
+  --dur-2:200ms;  /* entrance, toggle     */
+  --dur-3:320ms;  /* modal, drawer        */
+  --dur-4:520ms;  /* burn, decay          */
+
+  --sidebar-w:266px; --topbar-h:60px;
+}
+
+/* ══ tokens · colour (light) ═════════════════════════════════════════════ */
+
+:root{
+  /* grounds. Light reads as paper: the shell panels are RECESSED into the
+     ground and the floating things are near-white. Dark inverts that (see
+     below) because a dark UI cannot go darker than its own ground and keep a
+     shadow legible. */
+  --ground:#f6ecda; --surface:#efe1c9; --panel:#e7d6b9; --raised:#fdf9f1;
+
+  --ink:#1e1c19; --muted:#544d42; --faint:#6a6254;
+
+  --line-soft:color-mix(in srgb,var(--ink) 7%,transparent);
+  --line:color-mix(in srgb,var(--ink) 15%,transparent);
+  /* --line-firm carries the 3:1 that WCAG 1.4.11 asks of a control whose only
+     identifying mark is its outline: inputs, checkboxes, the off toggle. */
+  --line-firm:color-mix(in srgb,var(--ink) 54%,transparent);
+
+  /* brand — terracotta, sage, plum. These never carry security meaning. */
+  --brass:#96481b; --brass-w:#ffe1d0;
+  --jack:#4f6136;  --jack-w:#dfeac7;
+  --seal:#7a5480;  --seal-w:#f0e4f0;   /* encryption, and only encryption */
+  --good:#4f6136;                       /* connection health, not verification */
+
+  /* semantic — "your input is wrong", "the server said no". Never security. */
+  --alert:#a4392c; --alert-w:#f8ded6;
+
+  /* security scale — its own vocabulary, deliberately not the brand's.
+     verified: a colder, deeper green than the sage brand accent
+     pending:  ochre — "we have not checked this yet", not "this is wrong"
+     tamper:   oxblood. Grave and muted where --alert is loud and bright, and
+               always shipped with a ring and an icon so colour is never the
+               only channel carrying it. */
+  --verified:#2f6b45; --verified-w:#d8ecdd;
+  --pending:#7a5808;  --pending-w:#f7e7c2;
+  --tamper:#6f2230;   --tamper-w:#f2d8d9;
+
+  --bubble-me:#ffeee2;
+  --scrim:color-mix(in srgb,#2a2418 58%,transparent);
+
+  /* interaction washes. Hover LIFTS towards --raised in both themes, which is
+     also what keeps --faint above 4.5:1 on a hovered row. */
+  --hover:color-mix(in srgb,var(--raised) 60%,transparent);
+  --hover-firm:color-mix(in srgb,var(--ink) 8%,transparent);
+
+  /* elevation. Each step is a ring plus a two-part shadow: a tight contact
+     shadow and a wide ambient one. --e0 is flat on purpose. */
+  --e0:none;
+  --e1:inset 0 0 0 1px var(--line-soft),0 1px 2px rgba(74,59,34,.07),0 2px 5px rgba(74,59,34,.05);
+  --e2:inset 0 0 0 1px var(--line-soft),0 2px 4px rgba(74,59,34,.07),0 8px 18px rgba(74,59,34,.09);
+  --e3:inset 0 0 0 1px var(--line),0 4px 10px rgba(74,59,34,.09),0 16px 34px rgba(74,59,34,.13);
+  --e4:inset 0 0 0 1px var(--line),0 10px 22px rgba(74,59,34,.12),0 32px 64px rgba(74,59,34,.20);
+  --shadow:var(--e2); --shadow-lift:var(--e4);   /* legacy aliases */
+
+  /* per-user colour. --uc is a hue, set inline by client.js. */
+  --uc-s:52%; --uc-l:26%;
+  --uc-av-s:52%; --uc-av-bg-l:88%; --uc-av-fg-s:52%; --uc-av-fg-l:26%;
+}
+
+/* ══ tokens · colour (dark) ══════════════════════════════════════════════ */
+/* Declared twice, identically. Once for the system preference guarded against
+   an explicit light choice, once for an explicit dark choice. */
+
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#161711; --surface:#1f211a; --panel:#1a1c15; --raised:#292c23;
+    --ink:#f2ece0; --muted:#a39f8d; --faint:#999583;
+    --line-soft:color-mix(in srgb,var(--ink) 8%,transparent);
+    --line:color-mix(in srgb,var(--ink) 17%,transparent);
+    --line-firm:color-mix(in srgb,var(--ink) 46%,transparent);
+    --brass:#dd9d78; --brass-w:#452b18;
+    --jack:#a3b092;  --jack-w:#2e3a22;
+    --seal:#cbb0d2;  --seal-w:#372a3d;
+    --good:#a3b092;
+    --alert:#f0a18a; --alert-w:#4a231a;
+    --verified:#93c1a2; --verified-w:#22392b;
+    --pending:#d4b784;  --pending-w:#40331b;
+    --tamper:#d98c95;   --tamper-w:#3d2226;
+    --bubble-me:#33291c;
+    --scrim:color-mix(in srgb,#080905 72%,transparent);
+    --hover:color-mix(in srgb,var(--raised) 60%,transparent);
+    --hover-firm:color-mix(in srgb,var(--ink) 8%,transparent);
+    --e0:none;
+    --e1:inset 0 0 0 1px var(--line-soft),0 1px 2px rgba(0,0,0,.40),0 2px 5px rgba(0,0,0,.30);
+    --e2:inset 0 0 0 1px var(--line-soft),0 2px 5px rgba(0,0,0,.45),0 8px 18px rgba(0,0,0,.40);
+    --e3:inset 0 0 0 1px var(--line),0 4px 10px rgba(0,0,0,.50),0 16px 34px rgba(0,0,0,.48);
+    --e4:inset 0 0 0 1px var(--line),0 10px 22px rgba(0,0,0,.55),0 32px 64px rgba(0,0,0,.60);
+    --shadow:var(--e2); --shadow-lift:var(--e4);
+    --uc-s:56%; --uc-l:74%;
+    --uc-av-s:30%; --uc-av-bg-l:26%; --uc-av-fg-s:56%; --uc-av-fg-l:78%;
+  }
+}
+
+:root[data-theme="dark"]{
+  --ground:#161711; --surface:#1f211a; --panel:#1a1c15; --raised:#292c23;
+  --ink:#f2ece0; --muted:#a39f8d; --faint:#999583;
+  --line-soft:color-mix(in srgb,var(--ink) 8%,transparent);
+  --line:color-mix(in srgb,var(--ink) 17%,transparent);
+  --line-firm:color-mix(in srgb,var(--ink) 46%,transparent);
+  --brass:#dd9d78; --brass-w:#452b18;
+  --jack:#a3b092;  --jack-w:#2e3a22;
+  --seal:#cbb0d2;  --seal-w:#372a3d;
+  --good:#a3b092;
+  --alert:#f0a18a; --alert-w:#4a231a;
+  --verified:#93c1a2; --verified-w:#22392b;
+  --pending:#d4b784;  --pending-w:#40331b;
+  --tamper:#d98c95;   --tamper-w:#3d2226;
+  --bubble-me:#33291c;
+  --scrim:color-mix(in srgb,#080905 72%,transparent);
+  --hover:color-mix(in srgb,var(--raised) 60%,transparent);
+  --hover-firm:color-mix(in srgb,var(--ink) 8%,transparent);
+  --e0:none;
+  --e1:inset 0 0 0 1px var(--line-soft),0 1px 2px rgba(0,0,0,.40),0 2px 5px rgba(0,0,0,.30);
+  --e2:inset 0 0 0 1px var(--line-soft),0 2px 5px rgba(0,0,0,.45),0 8px 18px rgba(0,0,0,.40);
+  --e3:inset 0 0 0 1px var(--line),0 4px 10px rgba(0,0,0,.50),0 16px 34px rgba(0,0,0,.48);
+  --e4:inset 0 0 0 1px var(--line),0 10px 22px rgba(0,0,0,.55),0 32px 64px rgba(0,0,0,.60);
+  --shadow:var(--e2); --shadow-lift:var(--e4);
+  --uc-s:56%; --uc-l:74%;
+  --uc-av-s:30%; --uc-av-bg-l:26%; --uc-av-fg-s:56%; --uc-av-fg-l:78%;
+}
+
+/* ══ base ════════════════════════════════════════════════════════════════ */
+
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;background:var(--ground);color:var(--ink);
+  font-family:var(--sans);font-size:var(--fs-3);line-height:var(--lh-prose);
+  font-weight:400;
+  -webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+  display:flex;flex-direction:column;overflow:hidden;position:relative;
+}
+button,input,textarea{font:inherit;color:inherit}
+::selection{background:color-mix(in srgb,var(--brass) 30%,transparent)}
+:focus{outline:none}
+/* Keyboard-only operation is complete, so every interactive thing shows it. */
+:focus-visible{outline:2px solid var(--brass);outline-offset:2px;border-radius:var(--r-pill)}
+
+/* Every numeral surface goes through the mono face, which is monospaced by
+   construction — so the digits line up in a column whether or not the fallback
+   supports `tnum`. `zero` turns on the slashed zero: a safety number that
+   cannot distinguish 0 from O is not a safety number. */
+.mono{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;letter-spacing:0}
+
+[hidden]{display:none !important}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+::-webkit-scrollbar{width:9px;height:9px}
+::-webkit-scrollbar-thumb{background:color-mix(in srgb,var(--ink) 16%,transparent);border-radius:var(--r-pill);border:3px solid transparent;background-clip:content-box}
+::-webkit-scrollbar-thumb:hover{background:color-mix(in srgb,var(--ink) 28%,transparent);background-clip:content-box}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-button{display:none}
+
+/* Display face: never below 20.5px, always with the organic axes engaged and
+   the line balanced. */
+.cf-wordmark,.cf-h,.cf-spotlight h3,.cf-modal h3,.cf-room h4,.cf-poll h4,.cf-brand{
+  font-family:var(--display);
+  font-weight:400;
+  font-variation-settings:var(--organic);
+  font-optical-sizing:auto;
+  letter-spacing:var(--ls-display);
+  text-wrap:balance;
+}
+
+/* ══ shared atoms ════════════════════════════════════════════════════════ */
+
+.cf-btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:7px;cursor:pointer;
+  border:1px solid transparent;background:transparent;
+  font-family:var(--sans);font-size:var(--fs-2);font-weight:600;line-height:var(--lh-ui);
+  padding:9px 17px;border-radius:var(--r-pill);white-space:nowrap;
+  transition:background-color var(--dur-1) var(--ease),color var(--dur-1) var(--ease),
+             border-color var(--dur-1) var(--ease),box-shadow var(--dur-2) var(--ease),
+             transform var(--dur-1) var(--ease),filter var(--dur-1) var(--ease);
+}
+.cf-btn:active{transform:translateY(1px) scale(.985)}
+.cf-btn-primary{background:var(--brass);color:var(--ground);box-shadow:var(--e1)}
+.cf-btn-primary:hover{filter:brightness(1.08);box-shadow:var(--e2);transform:translateY(-1px)}
+.cf-btn-primary:active{transform:translateY(0) scale(.985);box-shadow:var(--e1)}
+.cf-btn-secondary{border-color:var(--line-firm);color:var(--ink)}
+.cf-btn-secondary:hover{background:var(--hover-firm)}
+.cf-btn-ghost{color:var(--brass);padding-inline:var(--s-2);font-family:var(--sans);font-weight:600}
+.cf-btn-ghost:hover{background:color-mix(in srgb,var(--brass) 12%,transparent)}
+.cf-btn-icon{width:36px;height:36px;padding:0;border-radius:var(--r-pill);color:var(--muted)}
+.cf-btn-icon:hover{background:var(--hover-firm);color:var(--ink)}
+/* small button — the shape #share wants, without an inline font-size. */
+.cf-btn-sm{padding:7px 14px;font-size:var(--fs-2)}
+.cf-btn[disabled]{opacity:.45;cursor:not-allowed}
+.cf-btn[disabled]:hover{filter:none;background:var(--brass);transform:none;box-shadow:var(--e1)}
+.cf-btn-secondary[disabled]:hover,.cf-btn-ghost[disabled]:hover,.cf-btn-icon[disabled]:hover{background:transparent;box-shadow:none}
+
+.cf-chip{
+  display:inline-flex;align-items:center;gap:5px;
+  font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:.01em;
+  padding:3px 10px;border-radius:var(--r-pill);
+  background:var(--panel);color:var(--muted);white-space:nowrap;
+}
+.cf-chip-seal{background:var(--seal-w);color:var(--seal)}
+.cf-chip-brass{background:var(--brass-w);color:var(--brass)}
+
+.cf-input{
+  width:100%;min-height:40px;padding:8px 15px;
+  background:var(--raised);border:1px solid var(--line-firm);border-radius:var(--r-pill);
+  caret-color:var(--brass);font-size:var(--fs-2);line-height:var(--lh-ui);
+  transition:border-color var(--dur-1) var(--ease),box-shadow var(--dur-1) var(--ease),background-color var(--dur-1) var(--ease);
+}
+.cf-input::placeholder{color:var(--faint)}
+.cf-input:hover{border-color:var(--brass)}
+.cf-input:focus-visible{border-color:var(--brass);outline-offset:0;box-shadow:0 0 0 3px color-mix(in srgb,var(--brass) 22%,transparent)}
+.cf-field>label{display:block;font-size:var(--fs-1);line-height:var(--lh-ui);margin-bottom:5px;color:var(--muted);font-weight:600}
+.cf-hint{font-size:var(--fs-1);line-height:1.5;color:var(--faint);margin-top:5px;max-width:var(--measure);text-wrap:pretty}
+.cf-dot{width:7px;height:7px;border-radius:var(--r-circle);background:var(--good);flex:none}
+.cf-dot-off{background:var(--faint)}
+.cf-dot-warn{background:var(--brass)}
+.cf-dot-bad{background:var(--alert)}
+.svg{stroke:currentColor;stroke-width:2.75;stroke-linecap:round;stroke-linejoin:round;fill:none;display:block}
+.uc{color:hsl(var(--uc) var(--uc-s) var(--uc-l))}
+
+/* fingerprints and safety numbers — five groups of five, unmistakably mono */
+.cf-fp{
+  font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;
+  font-size:var(--fs-2);line-height:1.7;letter-spacing:.06em;
+  color:var(--ink);word-spacing:.5em;overflow-wrap:anywhere;
+}
+
+/* password field with a show/hide affordance */
+.cf-pw{position:relative}
+.cf-pw .cf-input{padding-right:70px}
+.cf-pw input[type="password"]{font-family:var(--mono);font-feature-settings:"zero" 1;letter-spacing:.1em}
+.cf-pw .rev{position:absolute;right:6px;top:5px;font-size:var(--fs-1);letter-spacing:.04em;text-transform:uppercase}
+
+/* ══ A. Join screen (§13.3 A) ════════════════════════════════════════════ */
+
+.cf-join{flex:1;display:grid;place-items:center;padding:var(--s-6);overflow:auto}
+.cf-join-card{width:min(430px,100%);background:var(--surface);border-radius:var(--r-5);padding:36px 34px 30px;box-shadow:var(--e2)}
+.cf-eyebrow{font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:var(--ls-caps);text-transform:uppercase;font-weight:700;color:var(--brass);margin-bottom:10px}
+.cf-wordmark{font-size:var(--fs-9);line-height:var(--lh-display);margin:0}
+.cf-tagline{color:var(--muted);font-size:var(--fs-3);line-height:var(--lh-prose);max-width:var(--measure);text-wrap:pretty;margin:10px 0 26px}
+.cf-form{display:flex;flex-direction:column;gap:var(--s-4)}
+.cf-alert{display:flex;align-items:flex-start;gap:9px;background:var(--alert-w);color:var(--alert);font-size:var(--fs-2);line-height:1.45;padding:10px 15px;border-radius:var(--r-4);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--alert) 26%,transparent)}
+.cf-switch{font-size:var(--fs-2);color:var(--muted);text-align:center}
+.cf-switch button{background:none;border:0;color:var(--brass);font-weight:600;cursor:pointer;padding:0;transition:color var(--dur-1) var(--ease)}
+.cf-switch button:hover{text-decoration:underline;text-underline-offset:3px}
+.cf-status{display:flex;align-items:center;gap:9px;font-size:var(--fs-1);line-height:var(--lh-ui);color:var(--faint);margin-top:var(--s-5);padding-top:var(--s-4);border-top:1px solid var(--line-soft)}
+.cf-status .url{font-family:var(--mono);font-variant-numeric:tabular-nums;margin-left:auto;font-size:var(--fs-1);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ══ B. Lobby (§13.3 B · §14.9) ══════════════════════════════════════════ */
+
+#lobby,#app{flex:1;display:flex;flex-direction:column;min-height:0}
+.cf-lobby{flex:1;overflow:auto;padding:34px var(--s-7) var(--s-7)}
+.cf-lobby-inner{max-width:940px;margin:0 auto}
+.cf-h{font-size:var(--fs-8);line-height:var(--lh-display);margin:0 0 var(--s-2)}
+.cf-blurb{color:var(--muted);font-size:var(--fs-3);line-height:var(--lh-prose);max-width:var(--measure);text-wrap:pretty;margin:0 0 26px}
+.cf-create{display:flex;gap:10px;align-items:center;background:var(--surface);padding:var(--s-3);border-radius:var(--r-pill);box-shadow:var(--e1)}
+.cf-lock-toggle{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--fs-2);color:var(--muted);cursor:pointer;padding-inline:6px;white-space:nowrap}
+.cf-toggle{width:34px;height:20px;border-radius:var(--r-pill);background:var(--line-firm);position:relative;flex:none;transition:background-color var(--dur-2) var(--ease)}
+.cf-toggle::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:var(--r-circle);background:var(--raised);box-shadow:var(--e1);transition:left var(--dur-2) var(--ease)}
+.cf-toggle.on{background:var(--seal)}
+.cf-toggle.on::after{left:16px}
+.cf-lock-toggle input{position:absolute;opacity:0;width:0;height:0}
+.cf-lock-toggle input:focus-visible+.cf-toggle{outline:2px solid var(--brass);outline-offset:2px}
+.cf-lockbar{margin-top:var(--s-3);background:var(--seal-w);border-radius:28px;padding:var(--s-4) var(--s-5);display:grid;gap:10px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--seal) 22%,transparent)}
+.cf-lockbar-head{display:flex;align-items:center;gap:var(--s-2);color:var(--seal);font-size:var(--fs-2);font-weight:700}
+.cf-meter{display:flex;gap:5px;margin-top:var(--s-2)}
+.cf-meter i{height:4px;flex:1;border-radius:var(--r-pill);background:color-mix(in srgb,var(--seal) 26%,transparent);transition:background-color var(--dur-2) var(--ease)}
+.cf-meter i.on{background:var(--seal)}
+/* --faint on the plum wash is 4.47:1 in dark — a hair under. The lockbar's
+   hint is long-form safety copy, so it takes --muted rather than --faint. */
+.cf-lockbar .cf-hint{color:var(--muted)}
+.cf-sectlabel{display:flex;align-items:baseline;gap:10px;margin:var(--s-6) 0 14px}
+.cf-sectlabel h6{font-family:var(--sans);font-size:var(--fs-1);line-height:var(--lh-ui);font-weight:700;letter-spacing:var(--ls-caps);text-transform:uppercase;color:var(--muted);margin:0}
+.cf-sectlabel span{font-size:var(--fs-1);color:var(--faint)}
+.cf-spotlight{
+  display:flex;align-items:center;gap:var(--s-5);
+  background:var(--brass);color:var(--ground);border-radius:var(--r-5);
+  padding:22px 26px;box-shadow:var(--e2);text-align:left;border:0;width:100%;cursor:pointer;font:inherit;
+  transition:transform var(--dur-2) var(--ease),box-shadow var(--dur-2) var(--ease),filter var(--dur-1) var(--ease);
+}
+.cf-spotlight:hover{transform:translateY(-2px);box-shadow:var(--e3);filter:brightness(1.05)}
+.cf-spotlight:active{transform:translateY(0)}
+/* Hierarchy here comes from size and tracking, not from opacity — a dimmed
+   label on a saturated fill is the classic way to fall under 4.5:1. */
+.cf-spotlight .k{font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:var(--ls-caps);text-transform:uppercase;font-weight:700;color:color-mix(in srgb,var(--ground) 88%,var(--brass))}
+.cf-spotlight h3{font-size:var(--fs-7);line-height:var(--lh-display);margin:4px 0 3px}
+.cf-spotlight p{margin:0;font-size:var(--fs-2);line-height:1.45;color:color-mix(in srgb,var(--ground) 88%,var(--brass))}
+.cf-spotlight .cf-btn{background:var(--ground);color:var(--brass);margin-left:auto;flex:none;box-shadow:none}
+.cf-spotlight .cf-btn:hover{filter:none;transform:none;box-shadow:none}
+.cf-rooms{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.cf-room{
+  background:var(--surface);border-radius:28px;padding:18px var(--s-5) var(--s-4);
+  display:flex;flex-direction:column;gap:6px;cursor:pointer;
+  border:1.5px solid transparent;text-align:left;font:inherit;color:inherit;
+  transition:background-color var(--dur-1) var(--ease),box-shadow var(--dur-2) var(--ease),
+             transform var(--dur-2) var(--ease),border-color var(--dur-1) var(--ease);
+}
+.cf-room:hover{background:var(--raised);box-shadow:var(--e2);transform:translateY(-2px)}
+.cf-room:active{transform:translateY(0)}
+.cf-room-top{display:flex;align-items:center;gap:var(--s-2);font-size:var(--fs-1);line-height:var(--lh-ui);color:var(--muted)}
+.cf-star{margin-left:auto;background:none;border:0;cursor:pointer;color:var(--faint);font-size:var(--fs-3);line-height:1;padding:2px;transition:color var(--dur-1) var(--ease),transform var(--dur-1) var(--ease)}
+.cf-star:hover{transform:scale(1.15)}
+.cf-star.on{color:var(--brass)}
+.cf-room h4{font-size:var(--fs-5);line-height:var(--lh-head);margin:2px 0 0;display:flex;align-items:center;gap:var(--s-2);overflow-wrap:anywhere}
+.cf-room .meta{font-size:var(--fs-1);line-height:1.45;color:var(--faint);flex:1}
+.cf-room .go{font-size:var(--fs-2);color:var(--brass);font-weight:600}
+.cf-room.here{border-color:var(--brass)}
+.cf-room.locked h4 svg{color:var(--seal);flex:none}
+.cf-empty{background:var(--surface);border-radius:28px;padding:34px;text-align:center;color:var(--faint);font-size:var(--fs-2);box-shadow:var(--e1)}
+
+/* ══ C. Chat shell (§13.3 C) ═════════════════════════════════════════════ */
+
+.cf-top{height:var(--topbar-h);flex:none;display:flex;align-items:center;gap:var(--s-3);padding:0 18px 0 22px;background:var(--ground)}
+.cf-brand{font-size:var(--fs-5);line-height:var(--lh-head);display:flex;align-items:baseline;gap:var(--s-2);min-width:0}
+.cf-brand .slash{color:var(--faint);font-family:var(--sans);font-size:var(--fs-2);font-weight:400;letter-spacing:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-top .spacer{flex:1}
+.cf-spark{display:flex;align-items:center;gap:var(--s-2);font-size:var(--fs-1);color:var(--faint);font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1}
+.cf-spark canvas{width:64px;height:20px;border-radius:var(--r-1);background:var(--panel);display:block}
+.cf-pill{display:inline-flex;align-items:center;gap:7px;font-size:var(--fs-1);line-height:var(--lh-ui);padding:5px 13px;border-radius:var(--r-pill);background:var(--jack-w);color:var(--jack);transition:background-color var(--dur-2) var(--ease),color var(--dur-2) var(--ease)}
+.cf-pill.warn{background:var(--brass-w);color:var(--brass)}
+.cf-pill.bad{background:var(--alert-w);color:var(--alert)}
+.cf-pill .cf-dot{background:currentColor}
+
+.cf-body{flex:1;display:flex;min-height:0}
+.cf-side{width:var(--sidebar-w);flex:none;background:var(--surface);border-radius:var(--r-5) 0 0 0;margin-left:var(--s-3);padding:var(--s-5) 6px 14px var(--s-5);display:flex;flex-direction:column;gap:6px;min-height:0}
+.cf-side h6{font-family:var(--sans);font-size:var(--fs-1);line-height:var(--lh-ui);font-weight:700;letter-spacing:var(--ls-caps);text-transform:uppercase;color:var(--muted);margin:0 0 var(--s-2);display:flex;gap:7px;align-items:center}
+.cf-side h6 b{color:var(--faint);font-weight:400;letter-spacing:0;text-transform:none;font-size:var(--fs-1);font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cf-roster{display:flex;flex-direction:column;gap:1px;overflow:auto;margin-right:var(--s-2)}
+.cf-user{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:var(--r-pill);font-size:var(--fs-2);line-height:var(--lh-ui);min-width:0;transition:background-color var(--dur-1) var(--ease)}
+.cf-user:hover{background:var(--hover)}
+.cf-av{
+  width:28px;height:28px;flex:none;border-radius:var(--r-circle);display:grid;place-items:center;
+  font-size:var(--fs-1);font-weight:700;letter-spacing:.02em;line-height:1;
+  background:hsl(var(--uc) var(--uc-av-s) var(--uc-av-bg-l));
+  color:hsl(var(--uc) var(--uc-av-fg-s) var(--uc-av-fg-l));
+}
+.cf-user .nm{font-weight:600;color:hsl(var(--uc) var(--uc-s) var(--uc-l));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-user .tag{font-size:var(--fs-1);letter-spacing:.05em;text-transform:uppercase;color:var(--faint);line-height:var(--lh-ui)}
+.cf-user .rtt{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;font-size:var(--fs-1);color:var(--faint)}
+/* "away" used to be opacity:.55, which dropped the name to ~2.2:1. The state
+   is now carried by colour and by the tag, and the text stays legible. */
+.cf-user.away .nm{color:var(--muted)}
+.cf-user.away .cf-av{opacity:.6}
+.cf-user.self .nm{text-decoration:underline;text-decoration-color:color-mix(in srgb,currentColor 35%,transparent);text-underline-offset:3px}
+.cf-user.typing-now .nm::after{content:"";display:inline-block;width:4px;height:4px;border-radius:var(--r-circle);background:var(--brass);margin-left:6px;vertical-align:middle}
+.cf-cmds{margin-top:auto;padding-top:14px}
+.cf-cmds ul{list-style:none;margin:0;padding:0;display:grid;gap:3px;font-size:var(--fs-1);line-height:1.5;color:var(--muted)}
+.cf-cmds code{font-family:var(--mono);font-size:var(--fs-1);color:var(--brass);margin-right:5px}
+.cf-side-foot{display:flex;align-items:center;gap:9px;margin-top:var(--s-3);padding-top:var(--s-3);border-top:1px solid var(--line-soft);margin-right:14px;font-size:var(--fs-1)}
+.cf-side-foot .nm{font-weight:600;color:hsl(var(--uc) var(--uc-s) var(--uc-l));overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-side-foot .st{margin-left:auto;font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;font-size:var(--fs-1);color:var(--faint)}
+.cf-side-foot .st.keyed{color:var(--seal)}
+
+/* — the log — */
+.cf-main{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;background:var(--surface);border-radius:var(--r-5) var(--r-5) 0 0;margin:0 var(--s-3) 0 0;position:relative}
+.cf-side:not([hidden])+.cf-main{border-top-left-radius:0}
+.cf-log{flex:1;overflow:auto;padding:var(--s-4) 26px var(--s-2);display:flex;flex-direction:column;justify-content:flex-end;gap:2px;min-height:0}
+.cf-log>*{flex:none}
+.cf-day{display:flex;align-items:center;gap:14px;margin:14px 0 10px;font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:var(--ls-caps);text-transform:uppercase;font-weight:600;color:var(--faint)}
+.cf-day::before,.cf-day::after{content:"";height:1px;flex:1;background:var(--line-soft)}
+
+/* — scrollback header (P2). Three states, not one: a failed history fetch has
+     to say so rather than silently render an empty room. Always the log's
+     first child, and older pages are inserted after it — which is also why the
+     entrance animation below, scoped to :last-child, can never cascade over a
+     backfill. — */
+.cf-histtop{
+  display:flex;align-items:center;justify-content:center;gap:14px;
+  min-height:34px;padding:10px 4px;margin-bottom:var(--s-2);text-align:center;
+  font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:var(--ls-caps);
+  text-transform:uppercase;font-weight:600;color:var(--faint);
+}
+.cf-histtop.loading{color:var(--muted)}
+.cf-histtop.loading::before{content:"";width:12px;height:12px;flex:none;border-radius:var(--r-circle);border:2px solid var(--line-firm);border-top-color:var(--brass)}
+.cf-histtop.done::before,.cf-histtop.done::after{content:"";height:1px;flex:1;background:var(--line-soft)}
+.cf-histtop.error{color:var(--alert);text-transform:none;letter-spacing:0}
+.cf-histtop.error button{
+  font:inherit;font-size:var(--fs-2);font-weight:600;text-transform:none;letter-spacing:0;cursor:pointer;
+  background:var(--alert-w);color:var(--alert);border:0;box-shadow:inset 0 0 0 1.5px var(--alert);
+  padding:7px var(--s-4);border-radius:var(--r-pill);
+  transition:filter var(--dur-1) var(--ease),transform var(--dur-1) var(--ease);
+}
+.cf-histtop.error button:hover{filter:brightness(1.05);transform:translateY(-1px)}
+.cf-sys{display:flex;align-items:center;gap:var(--s-2);font-size:var(--fs-2);line-height:var(--lh-log);color:var(--faint);padding:5px 4px 5px 54px}
+.cf-sys b{font-weight:600;color:hsl(var(--uc) var(--uc-s) var(--uc-l))}
+.cf-sys.warn{color:var(--alert)}
+.cf-sys.lock{color:var(--seal)}
+.cf-sys.lock b{color:var(--seal)}
+
+.cf-msg{display:grid;grid-template-columns:40px 1fr;gap:10px;padding:5px 4px;border-radius:22px;position:relative;transition:background-color var(--dur-1) var(--ease)}
+.cf-msg:hover{background:var(--hover)}
+.cf-msg .gutter{grid-column:1;display:flex;justify-content:center;padding-top:2px}
+.cf-msg .gutter .cf-av{width:34px;height:34px;font-size:var(--fs-1)}
+.cf-msg .stack{grid-column:2;min-width:0}
+.cf-head{display:flex;align-items:baseline;gap:9px;margin-bottom:1px;flex-wrap:wrap}
+.cf-head .nm{font-weight:700;font-size:var(--fs-2);color:hsl(var(--uc) var(--uc-s) var(--uc-l))}
+.cf-head time{font-size:var(--fs-1);color:var(--faint);font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1}
+.cf-text{font-size:var(--fs-3);line-height:var(--lh-log);overflow-wrap:anywhere;white-space:pre-wrap;max-width:var(--measure)}
+.cf-text a{color:var(--brass);text-underline-offset:2px}
+.cf-msg.grouped{padding-top:1px;padding-bottom:1px}
+.cf-msg.grouped .gutter{align-items:flex-start}
+.cf-msg .ministamp{font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;font-size:var(--fs-1);letter-spacing:-.03em;color:var(--faint);opacity:0;padding-top:3px;transition:opacity var(--dur-1) var(--ease)}
+.cf-msg.grouped:hover .ministamp,.cf-msg.grouped:focus-within .ministamp{opacity:1}
+.cf-badge{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-1);line-height:1.25;letter-spacing:.05em;text-transform:uppercase;font-weight:700;padding:1px 8px;border-radius:var(--r-pill);background:var(--panel);color:var(--muted);vertical-align:1px}
+.cf-badge.pv{background:var(--jack-w);color:var(--jack)}
+.cf-badge.seal{background:var(--seal-w);color:var(--seal)}
+.cf-badge.burn{background:var(--brass-w);color:var(--brass)}
+/* security scale — added for P5–P7. Never brand colour. */
+.cf-badge.verified{background:var(--verified-w);color:var(--verified)}
+.cf-badge.pending{background:var(--pending-w);color:var(--pending)}
+.cf-badge.tamper{background:var(--tamper-w);color:var(--tamper);box-shadow:inset 0 0 0 1.5px var(--tamper)}
+.cf-msg.me .cf-text{background:var(--bubble-me);display:inline-block;padding:6px 14px;border-radius:var(--r-3)}
+.cf-mention{background:var(--brass-w);color:var(--brass);border-radius:var(--r-pill);padding:0 6px;font-weight:600}
+.cf-msg.mine-mention{background:color-mix(in srgb,var(--brass) 10%,transparent);box-shadow:inset 3px 0 0 var(--brass)}
+/* A warm wash under a row costs the metadata about 0.9:1. The row is
+   emphasised, so its metadata is promoted with it rather than left to fail. */
+.cf-msg.mine-mention .cf-head time,.cf-msg.flash .cf-head time,
+.cf-msg.mine-mention .ministamp,.cf-msg.flash .ministamp{color:var(--muted)}
+.cf-msg.action .cf-text{font-style:italic;color:var(--muted);background:none;padding:0}
+.cf-msg.tomb .cf-text{color:var(--faint);font-style:italic;background:none;padding:0}
+/* a row that failed verification is never ordinary text (P6/P7) */
+.cf-msg.tampered,.cf-msg.forged{background:var(--tamper-w);box-shadow:inset 0 0 0 1.5px var(--tamper);border-radius:22px}
+.cf-msg.tampered .cf-text,.cf-msg.forged .cf-text{color:var(--tamper);background:none}
+.cf-quote{display:flex;gap:9px;align-items:center;font-size:var(--fs-2);line-height:var(--lh-ui);color:var(--muted);margin-bottom:4px;cursor:pointer;max-width:520px;background:none;border:0;padding:0;font-family:inherit;text-align:left}
+.cf-quote::before{content:"";width:3px;align-self:stretch;border-radius:var(--r-pill);background:hsl(var(--uc) var(--uc-s) var(--uc-l));flex:none;min-height:1.4em}
+.cf-quote b{color:hsl(var(--uc) var(--uc-s) var(--uc-l));font-weight:600;flex:none}
+.cf-quote span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* a wash plus an edge, not a solid fill — a solid --brass-w dropped the
+   timestamp under 4.5:1 in dark. */
+.cf-msg.flash{background:color-mix(in srgb,var(--brass) 15%,transparent);box-shadow:inset 3px 0 0 var(--brass);transition:background-color var(--dur-4) var(--ease),box-shadow var(--dur-4) var(--ease)}
+.cf-reacts{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.cf-react{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-1);line-height:var(--lh-ui);padding:2px 9px;border-radius:var(--r-pill);background:var(--panel);cursor:pointer;border:1px solid transparent;transition:background-color var(--dur-1) var(--ease),border-color var(--dur-1) var(--ease),transform var(--dur-1) var(--ease)}
+.cf-react:hover{transform:translateY(-1px)}
+.cf-react.on{background:var(--brass-w);border-color:var(--brass);color:var(--brass)}
+.cf-rail{position:absolute;top:-16px;right:14px;display:none;align-items:center;gap:2px;background:var(--raised);border-radius:var(--r-pill);padding:4px 6px;box-shadow:var(--e3);z-index:2}
+.cf-msg:hover .cf-rail,.cf-msg:focus-within .cf-rail{display:flex}
+.cf-rail button{background:none;border:0;cursor:pointer;font-size:var(--fs-2);line-height:1;padding:4px 5px;border-radius:var(--r-pill);color:var(--muted);transition:background-color var(--dur-1) var(--ease),color var(--dur-1) var(--ease)}
+.cf-rail button:hover{background:var(--hover-firm);color:var(--ink)}
+.cf-rail .sep{width:1px;height:16px;background:var(--line-soft);margin:0 4px}
+.cf-rail .t{font-size:var(--fs-1);color:var(--muted);font-weight:600;padding-inline:7px;transition:color var(--dur-1) var(--ease)}
+.cf-rail .t:hover{color:var(--ink)}
+.cf-fuse{font-size:var(--fs-1);color:var(--brass);font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;margin-top:3px}
+.cf-msg.burning{opacity:.25;transform:scale(.98);transition:opacity var(--dur-4) var(--ease),transform var(--dur-4) var(--ease)}
+.cf-editbox{display:grid;gap:var(--s-2);margin-top:4px;max-width:560px}
+.cf-editbox textarea{width:100%;min-height:60px;padding:10px 14px;border-radius:var(--r-4);background:var(--raised);border:1px solid var(--brass);resize:none;font-size:var(--fs-3);line-height:var(--lh-log)}
+.cf-editbox .row{display:flex;align-items:center;gap:9px;font-size:var(--fs-1);color:var(--faint)}
+
+/* — encrypted message states (§14.9) — */
+.cf-msg.enc .cf-text{padding-left:0}
+.cf-lockmark{color:var(--seal);vertical-align:-2px;margin-right:5px;display:inline-block}
+.cf-locked-text{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--fs-2);line-height:var(--lh-ui);color:var(--seal);background:var(--seal-w);padding:6px 15px;border-radius:var(--r-3)}
+/* This is a SECURITY failure, not a form error — hence --tamper, plus a ring
+   so the state survives being printed in greyscale or read colour-blind. */
+.cf-fail{display:inline-flex;align-items:center;gap:var(--s-2);font-size:var(--fs-2);line-height:var(--lh-ui);color:var(--tamper);background:var(--tamper-w);padding:6px 15px;border-radius:var(--r-3);box-shadow:inset 0 0 0 1.5px var(--tamper)}
+.cf-skel{display:inline-block;width:190px;height:14px;border-radius:var(--r-pill);background:linear-gradient(90deg,var(--panel),var(--line-soft),var(--panel));background-size:200% 100%;vertical-align:-2px}
+.cf-encbanner{display:flex;align-items:center;gap:10px;background:var(--seal-w);color:var(--seal);font-size:var(--fs-2);line-height:var(--lh-ui);padding:10px 18px;border-radius:22px;margin:6px 0 10px;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--seal) 26%,transparent)}
+.cf-encbanner b{font-weight:700}
+/* room-level tamper banner (P7) */
+.cf-tamperbanner{display:flex;align-items:center;gap:10px;background:var(--tamper-w);color:var(--tamper);font-size:var(--fs-2);line-height:var(--lh-ui);font-weight:600;padding:10px 18px;border-radius:22px;margin:6px 0 10px;box-shadow:inset 0 0 0 1.5px var(--tamper)}
+/* per-message verification badge (P6) — quiet when it passes, loud when not */
+.cf-sig{display:inline-flex;align-items:center;gap:4px;font-size:var(--fs-1);line-height:1.25;color:var(--faint);vertical-align:1px}
+.cf-sig.ok{color:var(--verified)}
+.cf-sig.pending{color:var(--pending)}
+.cf-sig.bad{color:var(--tamper);font-weight:700}
+
+/* — poll — */
+.cf-poll{background:var(--raised);border-radius:28px;padding:18px var(--s-5);margin:6px 0;max-width:470px;box-shadow:var(--e2)}
+.cf-poll .k{font-size:var(--fs-1);line-height:var(--lh-ui);letter-spacing:var(--ls-caps);text-transform:uppercase;font-weight:700;color:var(--brass);margin-bottom:7px}
+.cf-poll h4{font-size:var(--fs-5);line-height:var(--lh-head);margin:0 0 13px}
+.cf-opt{display:grid;gap:5px;margin-bottom:9px;cursor:pointer;background:none;border:0;padding:0;width:100%;font:inherit;color:inherit;text-align:left}
+.cf-opt .row{display:flex;font-size:var(--fs-2);line-height:var(--lh-ui);gap:10px;transition:color var(--dur-1) var(--ease)}
+.cf-opt .row b{margin-left:auto;font-weight:600;color:var(--muted);font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;font-size:var(--fs-1)}
+.cf-bar{height:9px;border-radius:var(--r-pill);background:var(--panel);overflow:hidden}
+.cf-bar i{display:block;height:100%;border-radius:var(--r-pill);background:var(--jack);transition:width var(--dur-3) var(--ease)}
+.cf-opt:hover .row{color:var(--ink)}
+.cf-opt.chosen .row{color:var(--brass);font-weight:600}
+.cf-opt.chosen .cf-bar i{background:var(--brass)}
+.cf-poll .foot{display:flex;align-items:center;gap:var(--s-3);font-size:var(--fs-1);color:var(--faint);margin-top:var(--s-3)}
+/* a closed poll dims its chrome, never its text — opacity on copy is how a
+   4.5:1 pairing quietly becomes a 3:1 one. */
+.cf-poll.closed{box-shadow:var(--e1)}
+.cf-poll.closed .cf-bar i{filter:saturate(.5)}
+.cf-poll.closed .k{color:var(--muted)}
+
+/* — composer area — */
+.cf-underlog{padding:0 26px var(--s-4);display:grid;gap:var(--s-2)}
+.cf-typing{height:17px;font-size:var(--fs-1);line-height:1.4;color:var(--faint);font-style:italic;padding-left:2px}
+.cf-replybar{display:flex;align-items:center;gap:10px;background:var(--raised);border-radius:var(--r-4);padding:8px 12px 8px 10px;font-size:var(--fs-2);line-height:var(--lh-ui);color:var(--muted);box-shadow:var(--e1)}
+.cf-replybar::before{content:"";width:3px;align-self:stretch;border-radius:var(--r-pill);background:hsl(var(--uc) var(--uc-s) var(--uc-l));flex:none}
+.cf-replybar b{color:hsl(var(--uc) var(--uc-s) var(--uc-l));flex:none}
+.cf-replybar .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cf-replybar .x{margin-left:auto;background:none;border:0;cursor:pointer;color:var(--faint);padding:2px 4px;border-radius:var(--r-pill);transition:color var(--dur-1) var(--ease),background-color var(--dur-1) var(--ease)}
+.cf-replybar .x:hover{color:var(--ink);background:var(--hover-firm)}
+.cf-composer{display:flex;align-items:flex-end;gap:10px;background:var(--raised);border-radius:28px;padding:9px 9px 9px 18px;box-shadow:var(--e2);transition:box-shadow var(--dur-2) var(--ease)}
+.cf-composer:focus-within{box-shadow:var(--e3)}
+.cf-composer textarea{flex:1;border:0;background:none;resize:none;overflow:hidden;padding:8px 0;max-height:144px;font-size:var(--fs-3);min-height:38px;line-height:var(--lh-log)}
+.cf-composer textarea::placeholder{color:var(--faint)}
+.cf-count{font-size:var(--fs-1);font-family:var(--mono);font-variant-numeric:tabular-nums;font-feature-settings:"zero" 1;color:var(--faint);padding-bottom:var(--s-3)}
+.cf-count.over{color:var(--alert);font-weight:600}
+.cf-composer.locked{opacity:.72}
+.cf-composer.locked textarea{cursor:not-allowed}
+.cf-composer.sealed .cf-send{background:var(--seal)}
+.cf-send{width:40px;height:40px;flex:none}
+.cf-jump{position:absolute;left:50%;transform:translateX(-50%);bottom:132px;display:inline-flex;align-items:center;gap:7px;background:var(--brass);color:var(--ground);font-size:var(--fs-2);line-height:var(--lh-ui);font-weight:600;padding:7px var(--s-4);border-radius:var(--r-pill);box-shadow:var(--e3);border:0;cursor:pointer;z-index:3;transition:box-shadow var(--dur-2) var(--ease),filter var(--dur-1) var(--ease)}
+.cf-jump:hover{filter:brightness(1.08);box-shadow:var(--e4)}
+.cf-ac{position:absolute;left:26px;right:26px;bottom:96px;max-width:430px;background:var(--raised);border-radius:var(--r-4);padding:var(--s-2);box-shadow:var(--e3);display:grid;gap:2px;z-index:4}
+.cf-ac-row{display:flex;align-items:baseline;gap:var(--s-3);padding:7px 13px;border-radius:var(--r-pill);font-size:var(--fs-2);line-height:var(--lh-ui);color:var(--muted);cursor:pointer;background:none;border:0;width:100%;text-align:left;font-family:inherit;transition:background-color var(--dur-1) var(--ease),color var(--dur-1) var(--ease)}
+.cf-ac-row:hover{background:var(--hover-firm);color:var(--ink)}
+.cf-ac-row code{font-family:var(--mono);font-size:var(--fs-2);color:var(--ink);min-width:150px;flex:none}
+.cf-ac-row.sel{background:var(--brass-w);color:var(--muted)}
+.cf-ac-row.sel code{color:var(--brass)}
+
+/* — toasts + modal — */
+.cf-toasts{position:absolute;right:22px;bottom:22px;display:grid;gap:9px;justify-items:end;z-index:20;pointer-events:none}
+.cf-toast{display:flex;align-items:center;gap:10px;background:var(--raised);color:var(--ink);font-size:var(--fs-2);line-height:var(--lh-ui);padding:11px 17px;border-radius:var(--r-4);box-shadow:var(--e3)}
+.cf-toast.bad{background:var(--alert-w);color:var(--alert);box-shadow:var(--e3),inset 0 0 0 1.5px var(--alert)}
+.cf-toast .code{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:var(--fs-1);background:color-mix(in srgb,var(--ink) 8%,transparent);padding:2px 7px;border-radius:var(--r-pill)}
+/* On a bad toast the wash would stack on --alert-w and pull the code under
+   4.5:1, so the chip is drawn with an edge instead of a fill. */
+.cf-toast.bad .code{background:transparent;box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--alert) 45%,transparent)}
+.cf-backdrop{position:fixed;inset:0;display:grid;place-items:center;padding:var(--s-5);background:var(--scrim);z-index:30;overflow:auto}
+.cf-modal{width:min(460px,100%);background:var(--surface);border-radius:var(--r-5);padding:28px;box-shadow:var(--e4);display:grid;gap:15px}
+.cf-modal h3{font-size:var(--fs-6);line-height:var(--lh-head);margin:0;display:flex;align-items:center;gap:9px}
+.cf-modal .lede{font-size:var(--fs-2);line-height:var(--lh-prose);color:var(--muted);max-width:var(--measure);text-wrap:pretty;margin:0}
+.cf-facts{display:grid;gap:7px;background:var(--panel);border-radius:22px;padding:14px 17px;font-size:var(--fs-2);line-height:1.45}
+.cf-facts div{display:flex;gap:9px;align-items:flex-start}
+.cf-facts .y{color:var(--jack);font-weight:700;flex:none}
+.cf-facts .n{color:var(--alert);font-weight:700;flex:none}
+.cf-check{display:flex;gap:10px;align-items:flex-start;font-size:var(--fs-2);line-height:1.45;color:var(--muted);cursor:pointer}
+.cf-check input{position:absolute;opacity:0;width:0;height:0}
+.cf-box{width:18px;height:18px;border-radius:var(--r-1);border:1.5px solid var(--line-firm);flex:none;margin-top:1px;display:grid;place-items:center;transition:background-color var(--dur-1) var(--ease),border-color var(--dur-1) var(--ease)}
+.cf-check input:checked+.cf-box{background:var(--seal);border-color:var(--seal)}
+.cf-check input:checked+.cf-box::after{content:"";width:9px;height:5px;border:2px solid var(--ground);border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.cf-check input:focus-visible+.cf-box{outline:2px solid var(--brass);outline-offset:2px}
+.cf-modal-actions{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+
+/* ══ motion ══════════════════════════════════════════════════════════════ */
+/* Everything below is inside a no-preference guard. The blanket override at
+   the foot of the file is a second line of defence, not the only one. */
+
+@media (prefers-reduced-motion:no-preference){
+
+  /* Message entrance. Deliberately scoped to :last-child so a 50-message
+     history backfill cannot cascade: the whole page is inserted inside one
+     synchronous loop, so only the final row is ever the last child when the
+     browser next paints. A live message is always the last child when it
+     lands, so it always animates. */
+  .cf-log>.cf-msg:last-child,
+  .cf-log>.cf-sys:last-child,
+  .cf-log>.cf-poll:last-child,
+  .cf-log>.cf-encbanner:last-child{
+    animation:cf-msg-in var(--dur-2) var(--ease) both;
+  }
+  @keyframes cf-msg-in{
+    from{opacity:0;transform:translateY(7px)}
+    to{opacity:1;transform:none}
+  }
+
+  .cf-react{animation:cf-pop var(--dur-2) var(--ease)}
+  @keyframes cf-pop{from{transform:scale(.82)}to{transform:scale(1)}}
+
+  .cf-skel{animation:cf-shimmer 1.2s linear infinite}
+  @keyframes cf-shimmer{to{background-position:-200% 0}}
+
+  /* The scrollback spinner. With motion reduced it stays a static ring with
+     one brass edge, which still reads as "working" without spinning. */
+  .cf-histtop.loading::before{animation:cf-spin 760ms linear infinite}
+  @keyframes cf-spin{to{transform:rotate(1turn)}}
+
+  .theme-btn .svg{transition:transform var(--dur-3) var(--ease)}
+  .theme-btn:hover .svg{transform:rotate(35deg)}
+
+  .cf-toast{animation:cf-rise var(--dur-2) var(--ease) both}
+  @keyframes cf-rise{from{transform:translateY(8px) scale(.98);opacity:0}to{transform:none;opacity:1}}
+
+  /* Modals fade the scrim and lift the card. There is no exit animation: the
+     dialog is removed with [hidden], and CSS cannot animate that. See the
+     handoff note in docs/DESIGN-SYSTEM.md. */
+  .cf-backdrop:not([hidden]){animation:cf-fade var(--dur-2) var(--ease) both}
+  .cf-backdrop:not([hidden]) .cf-modal{animation:cf-modal-in var(--dur-3) var(--ease) both}
+  @keyframes cf-fade{from{opacity:0}to{opacity:1}}
+  @keyframes cf-modal-in{from{opacity:0;transform:translateY(14px) scale(.975)}to{opacity:1;transform:none}}
+
+  .cf-jump{animation:cf-rise var(--dur-2) var(--ease) both}
+  .cf-ac:not([hidden]){animation:cf-rise var(--dur-1) var(--ease) both}
+  .cf-side:not([hidden]){animation:cf-fade var(--dur-2) var(--ease) both}
+  .cf-join-card,.cf-lobby-inner{animation:cf-msg-in var(--dur-3) var(--ease) both}
+  .cf-lockbar:not([hidden]){animation:cf-msg-in var(--dur-2) var(--ease) both}
+}
+
+/* ══ responsive — down to 360px (§13.1.4) ════════════════════════════════ */
+
+.cf-hamb{display:none}
+@media (max-width:820px){
+  .cf-hamb{display:inline-flex}
+  .cf-side{position:absolute;inset:var(--topbar-h) auto 0 0;z-index:6;box-shadow:var(--e4);border-radius:0 var(--r-5) 0 0;margin:0;width:min(280px,82vw)}
+  .cf-main{margin:0;border-radius:26px 26px 0 0}
+  .cf-side:not([hidden])+.cf-main{border-top-left-radius:26px}
+  .cf-log,.cf-underlog{padding-inline:14px}
+  .cf-lobby{padding:var(--s-5) var(--s-4)}
+  .cf-rooms{grid-template-columns:1fr}
+  .cf-create{flex-wrap:wrap;border-radius:28px}
+  .cf-create .cf-input{min-width:0}
+  .cf-top{padding:0 var(--s-3);gap:var(--s-2)}
+  .cf-brand{font-size:var(--fs-5)}
+  .cf-brand .slash{font-size:var(--fs-1)}
+  .cf-h{font-size:var(--fs-6)}
+  .cf-spark{display:none}
+  .cf-ac{left:14px;right:14px}
+}
+@media (max-width:640px){
+  /* modals become bottom sheets (roadmap 10c) */
+  .cf-backdrop{place-items:end center;padding:0}
+  .cf-modal{width:100%;border-radius:var(--r-5) var(--r-5) 0 0;padding:24px 20px calc(24px + env(safe-area-inset-bottom,0px))}
+  @media (prefers-reduced-motion:no-preference){
+    .cf-backdrop:not([hidden]) .cf-modal{animation:cf-sheet-in var(--dur-3) var(--ease) both}
+    @keyframes cf-sheet-in{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+  }
+}
+@media (max-width:520px){
+  .cf-top .label-hide{display:none}
+  .cf-spotlight{flex-wrap:wrap;padding:var(--s-4) 18px;border-radius:28px}
+  .cf-spotlight .cf-btn{margin-left:0}
+  .cf-join-card{padding:26px 22px 22px}
+  .cf-wordmark{font-size:var(--fs-8)}
+}
+
+/* The backstop. Every animation above is already inside a no-preference
+   guard; this catches anything a future edit forgets. */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
+}
