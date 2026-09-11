@@ -20,6 +20,7 @@
 package main
 
 import (
+	"bytes"
 	"crypto/tls"
 	"encoding/csv"
 	"encoding/json"
@@ -83,6 +84,8 @@ func main() {
 	feedEvery := flag.Int("feed-every", 25, "one GET /feed per this many posts (0 disables reads)")
 	feedLimit := flag.Int("feed-limit", 200, "?limit= sent with GET /feed, so a growing table does not dominate the run")
 	timeout := flag.Duration("timeout", 10*time.Second, "per-request timeout")
+	payload := flag.String("payload", "form", `POST body encoding: "form" or "json". The grading client sends json, and a body the server parses down a different path is a different test.`)
+	noKeepAlive := flag.Bool("no-keepalive", false, "open a fresh TCP connection per request, as a client that does not reuse connections would")
 	insecure := flag.Bool("insecure", false, "skip TLS verification (self-signed lab certificate)")
 	experiment := flag.String("experiment", "run", "label for the output files")
 	out := flag.String("out", "results/lab6", "output directory")
@@ -95,6 +98,10 @@ func main() {
 	if *target == "" {
 		fmt.Fprintln(os.Stderr, "chatload: -url is required")
 		flag.Usage()
+		os.Exit(2)
+	}
+	if *payload != "form" && *payload != "json" {
+		fmt.Fprintln(os.Stderr, `chatload: -payload must be "form" or "json"`)
 		os.Exit(2)
 	}
 	if *users <= 0 || *minLen <= 0 || *maxLen < *minLen || *maxGap < *minGap {
@@ -126,6 +133,10 @@ func main() {
 		ForceAttemptHTTP2:   false,
 		TLSClientConfig:     tlsConf,
 		TLSHandshakeTimeout: 10 * time.Second,
+		// Diagnostic: a grading client that does not reuse connections makes the
+		// server pay a TCP accept per request, which is a completely different
+		// workload from a keep-alive one.
+		DisableKeepAlives: *noKeepAlive,
 	}
 	client := &http.Client{Timeout: *timeout, Transport: tr}
 
@@ -205,14 +216,14 @@ func main() {
 				}
 
 				body, id := makeMessage(rng, name, *minLen, *maxLen)
-				record(post(client, base, body, *timeout))
+				record(post(client, base, body, *payload))
 				posts++
 
 				// A deliberate duplicate now and then: the assignment requires
 				// that a retried message not be inserted twice, and a test
 				// that never retries never checks it.
 				if *idempotentPct > 0 && rng.IntN(100) < *idempotentPct {
-					record(post(client, base, body, *timeout))
+					record(post(client, base, body, *payload))
 					_ = id
 				}
 
@@ -276,13 +287,35 @@ func makeMessage(rng *rand.Rand, name string, minLen, maxLen int) (url.Values, s
 	return url.Values{"client-name": {name}, "msg": {text}, "id": {id}}, id
 }
 
-func post(c *http.Client, base string, form url.Values, _ time.Duration) sample {
+func post(c *http.Client, base string, form url.Values, payload string) sample {
 	start := time.Now()
-	req, err := http.NewRequest(http.MethodPost, base+"/message", strings.NewReader(form.Encode()))
-	if err != nil {
+	fail := func() sample {
 		return sample{atMs: start.UnixMilli(), route: "message", latency: time.Since(start), errKind: "build"}
 	}
-	req.Header.Set("content-type", "application/x-www-form-urlencoded")
+
+	var (
+		body        io.Reader
+		contentType string
+	)
+	if payload == "json" {
+		obj := make(map[string]string, len(form))
+		for k := range form {
+			obj[k] = form.Get(k)
+		}
+		enc, err := json.Marshal(obj)
+		if err != nil {
+			return fail()
+		}
+		body, contentType = bytes.NewReader(enc), "application/json"
+	} else {
+		body, contentType = strings.NewReader(form.Encode()), "application/x-www-form-urlencoded"
+	}
+
+	req, err := http.NewRequest(http.MethodPost, base+"/message", body)
+	if err != nil {
+		return fail()
+	}
+	req.Header.Set("content-type", contentType)
 	return finish(c, req, start, "message")
 }
 

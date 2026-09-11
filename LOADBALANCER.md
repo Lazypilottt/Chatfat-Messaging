@@ -19,14 +19,16 @@ substitute your own allocation throughout.
 
 | System | SSH | App port | Additional forwarded ports | Runs |
 |--------|-----|----------|-----------------------------|------|
-| stu1_sys1 | `ssh -p 2201 student@10.1.75.51` | 3201 | 4201, 5201, 6201 *(7201 unavailable)* | load balancer |
-| stu1_sys2 | `ssh -p 2202 student@10.1.75.51` | 4202 *(moved off 3202)* | 5202, 6202 *(7202 unavailable)* | backend-1 |
-| stu1_sys3 | `ssh -p 2203 student@10.1.75.51` | 4203 *(moved off 3203)* | 5203, 6203 *(7203 unavailable)* | backend-2 |
+| stu1_sys1 | `ssh -p 2201 student@10.1.75.51` | 3201 | 4201, 5201, 6201| load balancer |
+| stu1_sys2 | `ssh -p 2202 student@10.1.75.51` | 4202 | 5202, 6202 | backend-1 |
+| stu1_sys3 | `ssh -p 2203 student@10.1.75.51` | 4203 | 5203, 6203 | backend-2 |
 | stu1_sys4 | `ssh -p 2204 student@10.1.75.51` | 3204 | 4204, 5204, 6204, 7204 | backend-3 |
 
-Use the designated **App port** for each system — the host-forwarded port, not a
-container-internal one. That is what makes the backends reachable from Sys1 and
-the load balancer reachable from your laptop.
+The **App port** is the port used by the service inside each system's container.
+The backend containers are not necessarily reachable through
+`10.1.75.51:<App port>` from your laptop. The load balancer should use each
+backend container's own address; only test the load balancer from the laptop
+when its port is actually forwarded.
 
 ---
 
@@ -36,8 +38,8 @@ Start these first, so the load balancer has something to health-check.
 
 ```bash
 ssh -p 2202 student@10.1.75.51          # stu1_sys2
-git clone <your-repo-url> chatfat-enc
-cd chatfat-enc
+git clone <your-repo-url> Chatfat-Messaging
+cd Chatfat-Messaging
 npm install
 ```
 
@@ -61,11 +63,17 @@ PORT=3204 BACKEND_NAME=backend-3 DATABASE_URL=none BENCH_ENABLED=1 node server.j
 | `DATABASE_URL=none` | no persistence. Deliberate: the experiment measures HTTP request handling, and a database round-trip per request would make the shared store the bottleneck instead of the backends, flattening the comparison. The server refuses to start with this unset rather than silently storing nothing. |
 | `BENCH_ENABLED=1` | exposes `/bench`. Without it the endpoint does not exist. |
 
-Leave each running in its terminal. Check from your laptop:
+Leave each running in its terminal. Check each backend from **Sys1**, first obtain the container address for each backend:
 
 ```bash
-curl -s http://10.1.75.51:4202/healthz
-curl -si "http://10.1.75.51:4202/bench?work=100" | grep -i x-backend
+# Run on stu1_sys2, stu1_sys3, and stu1_sys4:
+hostname -I
+
+# Then run on stu1_sys1, replacing the addresses with the values returned above:
+curl -s http://<sys2-container-ip>:4202/healthz
+curl -s http://<sys3-container-ip>:4203/healthz
+curl -s http://<sys4-container-ip>:3204/healthz
+curl -si "http://<sys2-container-ip>:4202/bench?work=100" | grep -i x-backend
 ```
 
 ---
@@ -95,14 +103,15 @@ Build into `bin/` at the repository root and run from the root throughout, so
 **Experiment 1 — Sys2 only:**
 
 ```bash
-./bin/lb -listen 0.0.0.0:3201 -backends http://10.1.75.51:4202
+./bin/lb -listen 0.0.0.0:3201 \
+  -backends http://<sys2-container-ip>:4202
 ```
 
 **Experiment 2 — all three backends:**
 
 ```bash
 ./bin/lb -listen 0.0.0.0:3201 \
-  -backends http://10.1.75.51:4202,http://10.1.75.51:4203,http://10.1.75.51:3204
+  -backends http://<sys2-container-ip>:4202,http://<sys3-container-ip>:4203,http://<sys4-container-ip>:3204
 ```
 
 Stop with Ctrl-C and restart with the other `-backends` value to switch between
@@ -123,10 +132,10 @@ experiments. Flags:
 Monitoring endpoints:
 
 ```bash
-curl -s http://10.1.75.51:3201/lb/health     # is the LB up
-curl -s http://10.1.75.51:3201/lb/status     # per-backend alive / in-flight / counts
-curl -s http://10.1.75.51:3201/lb/metrics    # totals, dropout, throughput, p50/p95/p99
-curl -sX POST http://10.1.75.51:3201/lb/reset  # zero the counters
+curl -s http://127.0.0.1:3201/lb/health     # run on Sys1
+curl -s http://127.0.0.1:3201/lb/status     # per-backend alive / in-flight / counts
+curl -s http://127.0.0.1:3201/lb/metrics    # totals, dropout, throughput, p50/p95/p99
+curl -sX POST http://127.0.0.1:3201/lb/reset  # zero the counters
 ```
 
 Anything else is proxied round-robin to a healthy backend — including WebSocket
@@ -136,7 +145,7 @@ upgrades, so the chat application itself works through it.
 
 ```bash
 for i in $(seq 1 9); do
-  curl -s "http://10.1.75.51:3201/bench?work=10" | grep -o '"backend":"[^"]*"'
+  curl -s "http://127.0.0.1:3201/bench?work=10" | grep -o '"backend":"[^"]*"'
 done
 ```
 
@@ -146,18 +155,21 @@ backend will say why.
 
 ---
 
-## Your laptop — the load generator
+## Load generator on Sys1 (or your laptop through an SSH tunnel)
 
 ```bash
-cd chatfat-enc
+cd ~/Chatfat-Messaging
 go build -C lb -o ../bin/loadgen ./cmd/loadgen
 ```
 
 Four runs. Restart the load balancer with the matching `-backends` before each
 pair.
 
+Run the load generator on Sys1 so it can reach the load balancer on its local
+port:
+
 ```bash
-LB=http://10.1.75.51:3201
+LB=http://127.0.0.1:3201
 
 # --- Experiment 1: load balancer configured with Sys2 only ---
 ./bin/loadgen -url "$LB/bench?work=2000" -lb "$LB" \

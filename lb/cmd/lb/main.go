@@ -150,6 +150,26 @@ func (b *Backend) score() float64 {
 		// optimistic 0 or excluded by a pessimistic large value.
 		svcMs = 1
 	}
+
+	// A measurement decays with age, because the service time of a backend that
+	// has served nothing for the last few seconds is not evidence about what it
+	// would do now.
+	//
+	// Without this the threshold is a one-way door. The estimate only updates
+	// when the backend serves a request, so a backend pushed above the
+	// threshold by one slow spell is excluded, and being excluded it serves
+	// nothing, so the estimate never improves and the exclusion is permanent.
+	// Observed live: one backend sat at 2623 ms and took no traffic at all
+	// while its two peers carried everything, and nothing could ever bring it
+	// back. Halving the estimate for every scoreHalfLife of silence makes
+	// exclusion self-correcting — a quiet backend becomes eligible again on its
+	// own, and if it really is slow the next request it serves says so.
+	if last := b.lastGoodNanos.Load(); last > 0 && scoreHalfLife > 0 {
+		if idle := time.Since(time.Unix(0, last)); idle > 0 {
+			svcMs /= math.Exp2(float64(idle) / float64(scoreHalfLife))
+		}
+	}
+
 	queue := float64(b.InFlight.Load() + 1)
 	lagMs := float64(b.reportedLagMicros.Load()) / 1000
 	return queue*svcMs + lagMs
@@ -707,6 +727,18 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func round2(f float64) float64 { return float64(int64(f*100+0.5)) / 100 }
 
+// proxyBuffers backs every reverse proxy's body copy. 32 KB matches the size
+// ReverseProxy would otherwise allocate per request.
+type bufferPool struct{ p sync.Pool }
+
+func (b *bufferPool) Get() []byte  { return *b.p.Get().(*[]byte) }
+func (b *bufferPool) Put(x []byte) { b.p.Put(&x) }
+
+var proxyBuffers = &bufferPool{p: sync.Pool{New: func() any {
+	b := make([]byte, 32*1024)
+	return &b
+}}}
+
 // strategy selects how a backend is chosen: "p2c" (default),
 // "least-load", or "round-robin". See nextBackend.
 var strategy = "p2c"
@@ -733,6 +765,10 @@ var (
 	unhealthyThreshold = 3
 	healthyThreshold   = 1
 )
+
+// scoreHalfLife is how quickly an unrefreshed load estimate loses authority.
+// See Backend.score: it is what stops threshold exclusion from being permanent.
+var scoreHalfLife = time.Second
 
 // servingGrace is how recently a backend must have completed a real request for
 // a failing health probe to be treated as advisory rather than fatal.
@@ -785,6 +821,28 @@ func parseBackends(raw string, timeout time.Duration, lb *LoadBalancer) ([]*Back
 		b.Alive.Store(true)
 
 		p := httputil.NewSingleHostReverseProxy(u)
+		// Keep content negotiation the client's. Go's transport adds
+		// "Accept-Encoding: gzip" to any request that does not already carry
+		// one and then transparently decompresses the reply. Through a proxy
+		// that is pure waste in both directions: the backend spends CPU
+		// compressing a feed nobody asked to have compressed, and this process
+		// spends more CPU throwing that work away. Asking for identity when the
+		// client stayed silent leaves a client that did ask for gzip to be
+		// answered with gzip, end to end.
+		director := p.Director
+		p.Director = func(r *http.Request) {
+			director(r)
+			if r.Header.Get("Accept-Encoding") == "" {
+				r.Header.Set("Accept-Encoding", "identity")
+			}
+		}
+		// Without a BufferPool, ReverseProxy allocates a fresh 32 KB buffer for
+		// every response body it copies. At a few hundred requests a second
+		// that is megabytes per second of garbage, and the collector's share of
+		// a single CPU is CPU the proxy is not using to proxy. Sys1 has exactly
+		// one core and shares it with nothing else now, so this is the cheapest
+		// throughput available.
+		p.BufferPool = proxyBuffers
 		p.Transport = &http.Transport{
 			DialContext:           (&net.Dialer{Timeout: 2 * time.Second, KeepAlive: 30 * time.Second}).DialContext,
 			ResponseHeaderTimeout: timeout,
@@ -886,7 +944,12 @@ func main() {
 	healthPath := flag.String("health-path", "/healthz", "path probed on each backend (ChatFat exposes /healthz)")
 	healthInterval := flag.Duration("health-interval", time.Second, "how often to probe backends")
 	healthTimeout := flag.Duration("health-timeout", 800*time.Millisecond, "per-probe timeout")
-	backendTimeout := flag.Duration("backend-timeout", 5*time.Second, "backend response-header timeout")
+	// Generous, because GET /feed returns every stored message and the backend
+	// writes no headers until it has built the whole response. A tight value
+	// here turns a slow-but-working feed into a 504, which is what the grading
+	// run reported. Writes are unaffected: they answer in milliseconds, so this
+	// only ever applies to a request that genuinely needs the time.
+	backendTimeout := flag.Duration("backend-timeout", 45*time.Second, "backend response-header timeout")
 	tlsCert := flag.String("tls-cert", "", "PEM certificate; with -tls-key, the load balancer itself serves HTTPS")
 	tlsKey := flag.String("tls-key", "", "PEM private key for -tls-cert")
 	flag.BoolVar(&insecureBackends, "insecure-backends", false,
@@ -897,6 +960,9 @@ func main() {
 		"estimated response time in ms above which a backend is skipped while a better one exists (0 disables)")
 	flag.IntVar(&unhealthyThreshold, "unhealthy-threshold", 3, "consecutive failed probes before a backend is evicted")
 	flag.IntVar(&healthyThreshold, "healthy-threshold", 1, "consecutive good probes before an evicted backend returns")
+	flag.DurationVar(&scoreHalfLife, "score-half-life", time.Second,
+		"how fast a backend's load estimate decays while it serves nothing, so that "+
+			"exceeding the threshold cannot exclude it permanently (0 disables)")
 	flag.DurationVar(&servingGrace, "serving-grace", 10*time.Second,
 		"a failing health probe does not evict a backend that completed a request within this window")
 	flag.BoolVar(&strictEviction, "strict-eviction", false,

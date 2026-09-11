@@ -124,6 +124,8 @@ function handleBetterAuth(req, res, ip) {
 
 function createServer() {
   load.start();
+  // Keeps GET /feed off the rebuild path; see startFeedWarmer.
+  api.startFeedWarmer();
 
   const handler = (req, res) => {
     const url = new URL(req.url, 'http://localhost');
