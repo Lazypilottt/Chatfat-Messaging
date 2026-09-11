@@ -122,6 +122,15 @@ class NullRepo {
   async since() {
     return [];
   }
+  async saveMany() {
+    return [];
+  }
+  async feedKeys() {
+    return [];
+  }
+  async byIds() {
+    return [];
+  }
 
   async close() {}
 }
@@ -136,12 +145,24 @@ class MemoryRepo {
   async init() {}
 
   async save(roomId, m) {
+    if (this.rows.has(m.id)) return [];
     const copy = JSON.parse(JSON.stringify(m));
     const { text, textIv, textKv } = encryptTextField(copy);
     copy.text = text;
     copy.textIv = textIv;
     copy.textKv = textKv;
     this.rows.set(m.id, { roomId, m: copy });
+    return [m.id];
+  }
+
+  async saveMany(roomId, messages) {
+    const inserted = [];
+    for (const m of messages) {
+      if (this.rows.has(m.id)) continue;
+      await this.save(roomId, m);
+      inserted.push(m.id);
+    }
+    return inserted;
   }
 
   async update(id, patch) {
@@ -197,6 +218,24 @@ class MemoryRepo {
       .slice(0, limit);
   }
 
+  async feedKeys(roomId, limit) {
+    if (limit <= 0) return [];
+    return [...this.rows.values()]
+      .filter(({ roomId: rid, m }) => rid === roomId && !m.unsent)
+      .sort((a, b) => byTsThenId(a.m, b.m))
+      .slice(-limit)
+      .map(({ m }) => m.id);
+  }
+
+  async byIds(roomId, ids) {
+    const out = [];
+    for (const id of ids) {
+      const hit = this.rows.get(id);
+      if (hit && hit.roomId === roomId && !hit.m.unsent) out.push(decorateStored(hit.m, roomId));
+    }
+    return out;
+  }
+
   async close() {
     this.rows.clear();
   }
@@ -227,14 +266,15 @@ class PgRepo {
 
   async save(roomId, m) {
     const { text, textIv, textKv } = encryptTextField(m);
-    await pool.query(
+    const result = await pool.query(
       // Named: prepared once per connection instead of parsed per insert.
       // This is the hot path — every POST /message lands here.
       { name: 'msg_insert', text: `insert into messages
          (id, room_id, ts, from_name, from_id, colour, text, text_iv, text_kv, action, reply_to, mentions,
           reactions, edited_at, unsent, expires_at, enc_alg, enc_kid, enc_n, enc_iv, enc_ct, enc_aadv, sig, sig_pub)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-       on conflict (id) do nothing` },
+       on conflict (id) do nothing
+       returning id` },
       [
         m.id,
         roomId,
@@ -257,6 +297,36 @@ class PgRepo {
         m.sigPub || null,
       ],
     );
+    return result.rows.map((row) => row.id);
+  }
+
+  async saveMany(roomId, messages) {
+    if (!messages.length) return [];
+    const values = [];
+    const params = [];
+    for (const m of messages) {
+      const { text, textIv, textKv } = encryptTextField(m);
+      const offset = params.length;
+      params.push(
+        m.id, roomId, m.ts, m.from, m.fromId, m.colour, text, textIv, textKv,
+        !!m.action, m.replyTo ? JSON.stringify(m.replyTo) : null,
+        JSON.stringify(m.mentions || []), JSON.stringify(m.reactions || {}),
+        m.editedAt ?? null, !!m.unsent, m.expiresAt ?? null,
+        ...encColumns(m), m.sig || null, m.sigPub || null,
+      );
+      const p = Array.from({ length: 24 }, (_, i) => `$${offset + i + 1}`);
+      values.push(`(${p.join(',')})`);
+    }
+    const result = await pool.query(
+      `insert into messages
+       (id, room_id, ts, from_name, from_id, colour, text, text_iv, text_kv, action, reply_to, mentions,
+        reactions, edited_at, unsent, expires_at, enc_alg, enc_kid, enc_n, enc_iv, enc_ct, enc_aadv, sig, sig_pub)
+       values ${values.join(',')}
+       on conflict (id) do nothing
+       returning id`,
+      params,
+    );
+    return result.rows.map((row) => row.id);
   }
 
   async update(id, patch) {
@@ -346,6 +416,29 @@ class PgRepo {
       [roomId, cursor.ts, cursor.id, limit],
     );
     return res.rows.map(rowToMessage);
+  }
+
+  async feedKeys(roomId, limit) {
+    if (limit <= 0) return [];
+    const res = await pool.query(
+      `select id from (
+         select id, ts from messages
+         where room_id = $1 and unsent = false
+         order by ts desc, id desc limit $2
+       ) t order by ts asc, id asc`,
+      [roomId, limit],
+    );
+    return res.rows.map((row) => row.id);
+  }
+
+  async byIds(roomId, ids) {
+    if (!ids.length) return [];
+    const res = await pool.query(
+      'select * from messages where room_id = $1 and unsent = false and id = any($2::text[])',
+      [roomId, ids],
+    );
+    const rows = new Map(res.rows.map((row) => [row.id, rowToMessage(row)]));
+    return ids.filter((id) => rows.has(id)).map((id) => rows.get(id));
   }
 
   async close() {}
