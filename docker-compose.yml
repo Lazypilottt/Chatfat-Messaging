@@ -1,0 +1,59 @@
+# Local development and offline work.
+#
+# The deployed configuration points DATABASE_URL at Neon and does not run the
+# `db` service at all. This file exists so the Postgres code path is testable
+# with no network — which matters, because a firewalled lab LAN would
+# otherwise take the whole application down rather than one feature.
+#
+#   docker compose up -d          app on :3000, Postgres on :5432
+#   docker compose --profile db up -d db    just the database, app on the host
+
+services:
+  app:
+    build: .
+    image: chatfat
+    container_name: chatfat
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://chatfat:chatfat@db:5432/chatfat
+      HISTORY_REPLAY: 50
+      # Dev-only key — 32 random bytes, base64, genuinely decodes to 32 bytes
+      # (config.js now enforces that at boot). Production takes MASTER_KEY
+      # from the host environment, never from a compose file and never baked
+      # into the image.
+      MASTER_KEY: ${MASTER_KEY:-eBALdyiGzcxV+O1B6KmjDxdaqqahZ8vH+dowLPxmG6U=}
+      BETTER_AUTH_URL: http://localhost:3000
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:-dev-only-secret-replace-me}
+    volumes:
+      - rooms:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: chatfat-db
+    environment:
+      POSTGRES_USER: chatfat
+      POSTGRES_PASSWORD: chatfat
+      POSTGRES_DB: chatfat
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # The app's depends_on waits on this, so a slow first start cannot race
+    # the migration runner.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chatfat -d chatfat"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  rooms:
+  pgdata:

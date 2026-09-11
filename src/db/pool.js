@@ -35,11 +35,16 @@ function getPool() {
   if (pool) return pool;
   if (!config.USE_POSTGRES) throw new Error('Postgres is not configured.');
 
+  // Pool size is a deployment property, not a code constant. Ten is right for
+  // a database an internet away, where the round trip dominates and more
+  // connections only queue in a different place; it is far too few for one on
+  // the same host, where a query costs well under a millisecond and the pool
+  // becomes the bottleneck long before the database does.
   const opts = {
     connectionString: config.DATABASE_URL,
-    max: 10,
+    max: config.DB_POOL_MAX,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 8000,
+    connectionTimeoutMillis: config.DB_CONNECT_TIMEOUT_MS,
   };
 
   if (isNeonHost(config.DATABASE_URL)) {
@@ -81,7 +86,17 @@ async function migrate() {
   return require('./migrate').run();
 }
 
+// `text` may be a string, or {name, text} to use a prepared statement.
+//
+// Naming a statement makes node-postgres send Parse once per connection and
+// Bind/Execute thereafter, instead of re-parsing and re-planning identical SQL
+// on every call. For the /message insert — the hot path, one statement executed
+// tens of thousands of times — that removes the planner from the request cost.
+// Anonymous queries keep working exactly as before.
 async function query(text, params) {
+  if (typeof text === 'object' && text !== null) {
+    return getPool().query({ name: text.name, text: text.text, values: params });
+  }
   return getPool().query(text, params);
 }
 

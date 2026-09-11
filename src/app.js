@@ -137,6 +137,15 @@ async function start() {
     log.error('http server error', err);
   });
 
+  // Keep-alive must outlive the proxy's idle timeout, or the proxy will send a
+  // request onto a socket this process is in the middle of closing. Node's
+  // default is 5 s; the load balancer holds idle connections for 30 s, and with
+  // the defaults inverted "http: server closed idle connection" was the single
+  // most common error under load. headersTimeout must exceed keepAliveTimeout,
+  // or Node aborts a connection it was willing to keep.
+  server.keepAliveTimeout = config.KEEPALIVE_TIMEOUT_MS;
+  server.headersTimeout = config.KEEPALIVE_TIMEOUT_MS + 5000;
+
   await new Promise((resolve) => server.listen(config.PORT, config.HOST, resolve));
 
   websocket.startHeartbeat();

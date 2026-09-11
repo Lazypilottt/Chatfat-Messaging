@@ -119,6 +119,10 @@ class NullRepo {
   async before() {
     return [];
   }
+  async since() {
+    return [];
+  }
+
   async close() {}
 }
 
@@ -181,6 +185,18 @@ class MemoryRepo {
     return out.slice(-limit).map((m) => decorateStored(m, roomId));
   }
 
+  // Messages strictly newer than the cursor, oldest first.
+  async since(roomId, cursor, limit) {
+    if (limit <= 0) return [];
+    return this.rows
+      .filter((r) => r.roomId === roomId && !r.message.unsent
+        && !olderThan(r.message, cursor)
+        && !(r.message.ts === cursor.ts && r.message.id === cursor.id))
+      .map((r) => r.message)
+      .sort(byTsThenId)
+      .slice(0, limit);
+  }
+
   async close() {
     this.rows.clear();
   }
@@ -212,11 +228,13 @@ class PgRepo {
   async save(roomId, m) {
     const { text, textIv, textKv } = encryptTextField(m);
     await pool.query(
-      `insert into messages
+      // Named: prepared once per connection instead of parsed per insert.
+      // This is the hot path — every POST /message lands here.
+      { name: 'msg_insert', text: `insert into messages
          (id, room_id, ts, from_name, from_id, colour, text, text_iv, text_kv, action, reply_to, mentions,
           reactions, edited_at, unsent, expires_at, enc_alg, enc_kid, enc_n, enc_iv, enc_ct, enc_aadv, sig, sig_pub)
        values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)
-       on conflict (id) do nothing`,
+       on conflict (id) do nothing` },
       [
         m.id,
         roomId,
@@ -304,6 +322,27 @@ class PgRepo {
          where room_id = $1 and unsent = false and (ts, id) < ($2, $3)
          order by ts desc, id desc limit $4
        ) t order by ts asc, id asc`,
+      [roomId, cursor.ts, cursor.id, limit],
+    );
+    return res.rows.map(rowToMessage);
+  }
+
+  // Rows strictly newer than (ts, id), oldest first. The mirror image of
+  // before(): where that pages backwards through history, this reads forwards
+  // from a watermark, which is what an append-only reader needs.
+  //
+  // `(ts, id) > ($2, $3)` matches the (room_id, ts desc, id desc) index, so
+  // this is one index range scan however large the table is — which is what
+  // lets /feed cost O(new rows) instead of O(all rows).
+  async since(roomId, cursor, limit) {
+    if (limit <= 0) return [];
+    const res = await pool.query(
+      {
+        name: 'msg_since',
+        text: `select * from messages
+         where room_id = $1 and unsent = false and (ts, id) > ($2, $3)
+         order by ts asc, id asc limit $4`,
+      },
       [roomId, cursor.ts, cursor.id, limit],
     );
     return res.rows.map(rowToMessage);

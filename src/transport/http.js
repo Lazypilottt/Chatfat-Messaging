@@ -11,6 +11,9 @@ const log = require('../logger');
 const { hub } = require('../state/hub');
 const auth = require('../auth');
 const { repository } = require('../messages/repository');
+const bench = require('./bench');
+const api = require('./api');
+const load = require('./load');
 
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
@@ -98,6 +101,9 @@ function healthz() {
     encryption: config.ENCRYPTION_ENABLED,
     lockedRooms,
     memory: { rss: mem.rss, heapUsed: mem.heapUsed },
+    // Published on the health probe as well as /statz: the load balancer
+    // already polls /healthz once a second, so routing needs no extra request.
+    load: load.snapshot(),
   };
 }
 
@@ -117,11 +123,25 @@ function handleBetterAuth(req, res, ip) {
 }
 
 function createServer() {
+  load.start();
+
   const handler = (req, res) => {
-    const { pathname } = new URL(req.url, 'http://localhost');
+    const url = new URL(req.url, 'http://localhost');
+    const { pathname } = url;
     const ip = (req.headers['x-forwarded-for'] || '').split(',')[0].trim() || req.socket.remoteAddress || 'unknown';
 
+    // In-flight accounting wraps every request, including the ones that fail,
+    // so the load figure the balancer reads can never drift upwards from
+    // requests that ended abnormally.
+    load.enter();
+    res.on('close', load.leave);
+
     if (pathname === '/healthz') return json(res, 200, healthz());
+    // Lab 6 routes: /message, /feed, /statz.
+    if (api.handle(req, res, pathname, url)) return;
+    // Load-balancing lab. Checked early and unconditionally cheap when
+    // BENCH_ENABLED is off, so it costs the chat path nothing.
+    if (bench.handle(req, res, pathname)) return;
     if (pathname.startsWith('/api/auth')) return handleBetterAuth(req, res, ip);
     if (req.method !== 'GET' && req.method !== 'HEAD') {
       return json(res, 405, { code: 'BAD_REQUEST', message: 'GET only.' });
