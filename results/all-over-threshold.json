@@ -1,0 +1,26 @@
+{
+  "experiment": "all-over-threshold",
+  "target": "http://127.0.0.1:14200/bench?work=4000",
+  "requests": 3000,
+  "concurrency": 300,
+  "successful": 3000,
+  "failed": 0,
+  "elapsed_s": 3.17,
+  "throughput_rps": 946.48,
+  "dropout_percent": 0,
+  "p50_ms": 110.3,
+  "p95_ms": 2603.52,
+  "p99_ms": 3030.56,
+  "min_ms": 3.84,
+  "max_ms": 3089.87,
+  "mean_ms": 299.1,
+  "per_backend": {
+    "backend-1": 1011,
+    "backend-2": 997,
+    "backend-3": 992
+  },
+  "status_mix": {
+    "200": 3000
+  },
+  "started_at": "2026-09-12T23:11:52+05:30"
+}

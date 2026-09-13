@@ -1,0 +1,47 @@
+{
+  "strategy": "p2c",
+  "load_threshold_ms": 150,
+  "backends": [
+    {
+      "url": "http://127.0.0.1:14201",
+      "alive": true,
+      "in_flight": 0,
+      "requests": 197,
+      "errors": 0,
+      "consecutive_failed_probes": 0,
+      "score_ms": 22.94,
+      "service_ms_ewma": 19.68,
+      "backend_lag_ms": 3.28,
+      "backend_cpu_percent": 2.89,
+      "over_threshold": false
+    },
+    {
+      "url": "http://127.0.0.1:14202",
+      "alive": true,
+      "in_flight": 0,
+      "requests": 206,
+      "errors": 0,
+      "consecutive_failed_probes": 0,
+      "score_ms": 22.6,
+      "service_ms_ewma": 17.46,
+      "backend_lag_ms": 5.16,
+      "backend_cpu_percent": 3.34,
+      "over_threshold": false
+    },
+    {
+      "url": "http://127.0.0.1:14203",
+      "alive": true,
+      "in_flight": 0,
+      "requests": 197,
+      "errors": 0,
+      "consecutive_failed_probes": 0,
+      "score_ms": 17.33,
+      "service_ms_ewma": 16.01,
+      "backend_lag_ms": 1.34,
+      "backend_cpu_percent": 0.2,
+      "over_threshold": false
+    }
+  ],
+  "healthy": 3,
+  "uptime_s": 0.367029
+}

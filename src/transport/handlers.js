@@ -321,6 +321,16 @@ async function onChat(session, d) {
     sigPub: session.sigPub,
   };
 
+  try {
+    await repository.save(room.id, message);
+  } catch (err) {
+    log.error(`persisting a message failed: ${err.message}`);
+    return fail(session.ws, 'SAVE_FAILED', 'Could not save message. Please try again.');
+  }
+
+  // Socket could have disconnected while the database was writing
+  if (!alive(session)) return;
+
   const ttl = Number(d && d.ttl);
   if (Number.isFinite(ttl) && ttl > 0) {
     history.arm(room, message, Math.round(ttl), (id) => {
@@ -335,7 +345,6 @@ async function onChat(session, d) {
     rooms.pushRoster(room.id);
   }
   broadcast(room.id, 'chat', message);
-  detach(repository.save(room.id, message), 'a message');
 }
 
 // — history —

@@ -1,0 +1,26 @@
+{
+  "experiment": "post-recovery-check",
+  "target": "http://127.0.0.1:14200/bench?work=2000",
+  "requests": 600,
+  "concurrency": 30,
+  "successful": 600,
+  "failed": 0,
+  "elapsed_s": 0.37,
+  "throughput_rps": 1642.65,
+  "dropout_percent": 0,
+  "p50_ms": 14.62,
+  "p95_ms": 36.34,
+  "p99_ms": 66.24,
+  "min_ms": 2.8,
+  "max_ms": 97.74,
+  "mean_ms": 17.82,
+  "per_backend": {
+    "backend-1": 197,
+    "backend-2": 206,
+    "backend-3": 197
+  },
+  "status_mix": {
+    "200": 600
+  },
+  "started_at": "2026-09-12T23:40:03+05:30"
+}

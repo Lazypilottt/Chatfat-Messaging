@@ -1,0 +1,26 @@
+{
+  "experiment": "quick-regression-check",
+  "target": "http://127.0.0.1:14200/bench?work=2000",
+  "requests": 1000,
+  "concurrency": 40,
+  "successful": 1000,
+  "failed": 0,
+  "elapsed_s": 0.57,
+  "throughput_rps": 1741.05,
+  "dropout_percent": 0,
+  "p50_ms": 20.97,
+  "p95_ms": 34.98,
+  "p99_ms": 44.59,
+  "min_ms": 1.97,
+  "max_ms": 64.49,
+  "mean_ms": 22.44,
+  "per_backend": {
+    "backend-1": 330,
+    "backend-2": 334,
+    "backend-3": 336
+  },
+  "status_mix": {
+    "200": 1000
+  },
+  "started_at": "2026-09-12T23:37:46+05:30"
+}

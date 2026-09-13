@@ -1,0 +1,34 @@
+{
+  "experiment": "sweep-pg-2000",
+  "target": "http://127.0.0.1:14200",
+  "users": 300,
+  "seed": 4300663227872810306,
+  "elapsed_s": 2.43,
+  "total_requests": 3916,
+  "posts": 3168,
+  "feeds": 748,
+  "successful": 3916,
+  "failed": 0,
+  "throughput_rps": 1608.36,
+  "messages_per_s": 1301.14,
+  "dropout_percent": 0,
+  "p50_ms": 17.29,
+  "p95_ms": 929.85,
+  "p99_ms": 1327.98,
+  "mean_ms": 152.86,
+  "max_ms": 1560.45,
+  "post_p50_ms": 9.23,
+  "post_p95_ms": 67.61,
+  "feed_p50_ms": 735.13,
+  "feed_p95_ms": 1353.34,
+  "per_backend": {
+    "backend-1": 928,
+    "backend-2": 1575,
+    "backend-3": 1413
+  },
+  "status_mix": {
+    "200": 748,
+    "201": 3168
+  },
+  "started_at": "2026-09-13T00:06:01+05:30"
+}

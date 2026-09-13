@@ -1,0 +1,37 @@
+{
+  "all_over_threshold": 1430,
+  "backend_errors": 0,
+  "client_canceled": 0,
+  "dropout_percent": 0,
+  "failed": 0,
+  "load_threshold_ms": 150,
+  "mean_ms": 17.58,
+  "no_backend": 0,
+  "p50_ms": 15.13,
+  "p95_ms": 34.51,
+  "p99_ms": 62.19,
+  "per_backend_reqs": {
+    "127.0.0.1:14201": 197,
+    "127.0.0.1:14202": 206,
+    "127.0.0.1:14203": 197
+  },
+  "per_backend_scores": {
+    "127.0.0.1:14201": 22.94,
+    "127.0.0.1:14202": 22.61,
+    "127.0.0.1:14203": 17.33
+  },
+  "samples": 600,
+  "self": {
+    "cpu_core_percent": 0,
+    "cpu_percent": 0,
+    "cpus": 8,
+    "goroutines": 147,
+    "rss_mb": 0
+  },
+  "strategy": "p2c",
+  "success": 600,
+  "throughput_rps": 1636.23,
+  "tls_handshake_failures": 0,
+  "total": 600,
+  "uptime_s": 0.37
+}

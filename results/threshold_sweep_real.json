@@ -1,0 +1,110 @@
+[
+  {
+    "threshold": 500,
+    "total_reqs": 3783,
+    "success": 3783,
+    "failed": 0,
+    "all_over_threshold": 2601,
+    "dropout_percent": 0,
+    "throughput_rps": 3110.65,
+    "chat_throughput": 21048.45,
+    "p50_ms": 7.46,
+    "p95_ms": 27.27,
+    "p99_ms": 78.71,
+    "mean_ms": 11.05,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1326,
+      "127.0.0.1:14202": 1313,
+      "127.0.0.1:14203": 1144
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 26.51,
+      "127.0.0.1:14202": 2.85,
+      "127.0.0.1:14203": 33.85
+    },
+    "score_range": "2.85 - 33.85 ms",
+    "chat_posts": 3129,
+    "chat_feeds": 654
+  },
+  {
+    "threshold": 1000,
+    "total_reqs": 3816,
+    "success": 3816,
+    "failed": 0,
+    "all_over_threshold": 303,
+    "dropout_percent": 0,
+    "throughput_rps": 3158.24,
+    "chat_throughput": 20076.91,
+    "p50_ms": 6.63,
+    "p95_ms": 30.67,
+    "p99_ms": 69.96,
+    "mean_ms": 10.95,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1152,
+      "127.0.0.1:14202": 1238,
+      "127.0.0.1:14203": 1426
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 3.13,
+      "127.0.0.1:14202": 48.75,
+      "127.0.0.1:14203": 36.54
+    },
+    "score_range": "3.13 - 48.75 ms",
+    "chat_posts": 3164,
+    "chat_feeds": 652
+  },
+  {
+    "threshold": 2000,
+    "total_reqs": 3805,
+    "success": 3805,
+    "failed": 0,
+    "all_over_threshold": 0,
+    "dropout_percent": 0,
+    "throughput_rps": 3229.86,
+    "chat_throughput": 23592.5,
+    "p50_ms": 7.46,
+    "p95_ms": 17.02,
+    "p99_ms": 49.14,
+    "mean_ms": 8.47,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1524,
+      "127.0.0.1:14202": 1590,
+      "127.0.0.1:14203": 691
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 3.43,
+      "127.0.0.1:14202": 27.65,
+      "127.0.0.1:14203": 4.33
+    },
+    "score_range": "3.43 - 27.65 ms",
+    "chat_posts": 3156,
+    "chat_feeds": 649
+  },
+  {
+    "threshold": 4000,
+    "total_reqs": 3795,
+    "success": 3795,
+    "failed": 0,
+    "all_over_threshold": 0,
+    "dropout_percent": 0,
+    "throughput_rps": 3188.16,
+    "chat_throughput": 21441.91,
+    "p50_ms": 7.46,
+    "p95_ms": 19.15,
+    "p99_ms": 34.51,
+    "mean_ms": 9.03,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1077,
+      "127.0.0.1:14202": 1345,
+      "127.0.0.1:14203": 1373
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 31.6,
+      "127.0.0.1:14202": 8.19,
+      "127.0.0.1:14203": 4.86
+    },
+    "score_range": "4.86 - 31.60 ms",
+    "chat_posts": 3143,
+    "chat_feeds": 652
+  }
+]

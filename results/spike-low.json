@@ -1,0 +1,26 @@
+{
+  "experiment": "spike-low",
+  "target": "http://127.0.0.1:14200/bench?work=4000",
+  "requests": 2000,
+  "concurrency": 40,
+  "successful": 2000,
+  "failed": 0,
+  "elapsed_s": 2.29,
+  "throughput_rps": 873.34,
+  "dropout_percent": 0,
+  "p50_ms": 40.17,
+  "p95_ms": 73.04,
+  "p99_ms": 151.39,
+  "min_ms": 6.65,
+  "max_ms": 309.34,
+  "mean_ms": 45.34,
+  "per_backend": {
+    "backend-1": 666,
+    "backend-2": 668,
+    "backend-3": 666
+  },
+  "status_mix": {
+    "200": 2000
+  },
+  "started_at": "2026-09-12T23:16:40+05:30"
+}

@@ -1,0 +1,178 @@
+[
+  {
+    "threshold": 500,
+    "total_reqs": 3864,
+    "success": 3864,
+    "failed": 0,
+    "all_over_threshold": 3467,
+    "dropout_percent": 0,
+    "throughput_rps": 1884.55,
+    "chat_throughput": 3822.23,
+    "p50_ms": 11.96,
+    "p95_ms": 409.39,
+    "p99_ms": 460.56,
+    "mean_ms": 69.64,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1093,
+      "127.0.0.1:14202": 1505,
+      "127.0.0.1:14203": 1266
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 138.4,
+      "127.0.0.1:14202": 125.33,
+      "127.0.0.1:14203": 285.45
+    },
+    "score_range": "125.33 - 285.45 ms",
+    "chat_posts": 3121,
+    "chat_feeds": 743,
+    "backend_details": {
+      "http://127.0.0.1:14201": {
+        "score_ms": 138.35,
+        "service_ms_ewma": 142.56,
+        "backend_lag_ms": 0.49
+      },
+      "http://127.0.0.1:14202": {
+        "score_ms": 125.29,
+        "service_ms_ewma": 128.11,
+        "backend_lag_ms": 3.06
+      },
+      "http://127.0.0.1:14203": {
+        "score_ms": 285.35,
+        "service_ms_ewma": 288.5,
+        "backend_lag_ms": 0.22
+      }
+    }
+  },
+  {
+    "threshold": 1000,
+    "total_reqs": 3876,
+    "success": 3876,
+    "failed": 0,
+    "all_over_threshold": 3014,
+    "dropout_percent": 0,
+    "throughput_rps": 1519.61,
+    "chat_throughput": 2536.57,
+    "p50_ms": 10.63,
+    "p95_ms": 655.76,
+    "p99_ms": 829.95,
+    "mean_ms": 105.54,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1543,
+      "127.0.0.1:14202": 1052,
+      "127.0.0.1:14203": 1281
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 267.94,
+      "127.0.0.1:14202": 537.51,
+      "127.0.0.1:14203": 169.65
+    },
+    "score_range": "169.65 - 537.51 ms",
+    "chat_posts": 3131,
+    "chat_feeds": 745,
+    "backend_details": {
+      "http://127.0.0.1:14201": {
+        "score_ms": 267.65,
+        "service_ms_ewma": 269.67,
+        "backend_lag_ms": 0.87
+      },
+      "http://127.0.0.1:14202": {
+        "score_ms": 536.93,
+        "service_ms_ewma": 587.62,
+        "backend_lag_ms": 4.78
+      },
+      "http://127.0.0.1:14203": {
+        "score_ms": 169.47,
+        "service_ms_ewma": 175.76,
+        "backend_lag_ms": 0.79
+      }
+    }
+  },
+  {
+    "threshold": 2000,
+    "total_reqs": 3916,
+    "success": 3916,
+    "failed": 0,
+    "all_over_threshold": 2319,
+    "dropout_percent": 0,
+    "throughput_rps": 1130.63,
+    "chat_throughput": 1608.36,
+    "p50_ms": 15.13,
+    "p95_ms": 933.7,
+    "p99_ms": 1329.42,
+    "mean_ms": 149.42,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 928,
+      "127.0.0.1:14202": 1575,
+      "127.0.0.1:14203": 1413
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 286.33,
+      "127.0.0.1:14202": 515.17,
+      "127.0.0.1:14203": 442.81
+    },
+    "score_range": "286.33 - 515.17 ms",
+    "chat_posts": 3168,
+    "chat_feeds": 748,
+    "backend_details": {
+      "http://127.0.0.1:14201": {
+        "score_ms": 286.21,
+        "service_ms_ewma": 342.29,
+        "backend_lag_ms": 1.5
+      },
+      "http://127.0.0.1:14202": {
+        "score_ms": 514.94,
+        "service_ms_ewma": 519.53,
+        "backend_lag_ms": 0.56
+      },
+      "http://127.0.0.1:14203": {
+        "score_ms": 442.61,
+        "service_ms_ewma": 541.4,
+        "backend_lag_ms": 0.36
+      }
+    }
+  },
+  {
+    "threshold": 4000,
+    "total_reqs": 3892,
+    "success": 3892,
+    "failed": 0,
+    "all_over_threshold": 1664,
+    "dropout_percent": 0,
+    "throughput_rps": 827.96,
+    "chat_throughput": 1058.63,
+    "p50_ms": 13.45,
+    "p95_ms": 1682.55,
+    "p99_ms": 2129.48,
+    "mean_ms": 252.47,
+    "per_backend_reqs": {
+      "127.0.0.1:14201": 1421,
+      "127.0.0.1:14202": 1495,
+      "127.0.0.1:14203": 976
+    },
+    "per_backend_scores": {
+      "127.0.0.1:14201": 1730.52,
+      "127.0.0.1:14202": 1023.21,
+      "127.0.0.1:14203": 415.75
+    },
+    "score_range": "415.75 - 1730.52 ms",
+    "chat_posts": 3153,
+    "chat_feeds": 739,
+    "backend_details": {
+      "http://127.0.0.1:14201": {
+        "score_ms": 1723.2,
+        "service_ms_ewma": 1818.68,
+        "backend_lag_ms": 13.19
+      },
+      "http://127.0.0.1:14202": {
+        "score_ms": 1018.97,
+        "service_ms_ewma": 1005.64,
+        "backend_lag_ms": 28.89
+      },
+      "http://127.0.0.1:14203": {
+        "score_ms": 414.03,
+        "service_ms_ewma": 513.74,
+        "backend_lag_ms": 11.52
+      }
+    }
+  }
+]

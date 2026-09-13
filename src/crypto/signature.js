@@ -20,6 +20,30 @@
 
 const crypto = require('node:crypto');
 
+// Parsed KeyObject instances are reusable — they are immutable after creation
+// and safe to call from any callback. Cache them by raw base64 string so a
+// sender who wrote 1 000 messages pays the DER-parse + curve-point-validation
+// cost once per process lifetime, not once per message on history replay.
+//
+// The cache is naturally bounded by the number of distinct senders in a room
+// — typically in the hundreds, never in the millions. A hard cap of 50 000
+// prevents unbounded growth if a client churns synthetic key pairs (which is
+// itself a sign of attack rather than normal use).
+const KEY_CACHE_MAX = 50_000;
+const keyCache = new Map(); // pubB64 -> KeyObject
+
+function getCachedPublicKey(pubB64) {
+  const hit = keyCache.get(pubB64);
+  if (hit) return hit;
+  const key = crypto.createPublicKey({
+    key: Buffer.from(pubB64, 'base64'),
+    format: 'der',
+    type: 'spki',
+  });
+  if (keyCache.size < KEY_CACHE_MAX) keyCache.set(pubB64, key);
+  return key;
+}
+
 // enc is the room-encryption envelope { alg, kid, n, iv, ct, aadv } when the
 // message is encrypted, or absent for a plaintext one — never both.
 function canonicalPayload({ room, from, text, enc }) {
@@ -31,10 +55,10 @@ function canonicalPayload({ room, from, text, enc }) {
 // same as a wrong one — the caller does not need to tell the two apart.
 function verify(pubB64, sigB64, fields) {
   try {
-    const pubKey = crypto.createPublicKey({ key: Buffer.from(pubB64, 'base64'), format: 'der', type: 'spki' });
+    const pubKey = getCachedPublicKey(pubB64);
     const sig = Buffer.from(sigB64, 'base64');
     const payload = canonicalPayload(fields);
-    // WebCrypto's ECDSA signatures are raw (r || s), not the DER encoding
+    // WebCrypto ECDSA signatures are raw (r || s), not the DER encoding
     // Node's crypto defaults to — 'ieee-p1363' reads the browser's format
     // directly, no conversion needed on either side.
     return crypto.verify('sha256', payload, { key: pubKey, dsaEncoding: 'ieee-p1363' }, sig);
@@ -43,4 +67,4 @@ function verify(pubB64, sigB64, fields) {
   }
 }
 
-module.exports = { canonicalPayload, verify };
+module.exports = { canonicalPayload, verify, getCachedPublicKey };

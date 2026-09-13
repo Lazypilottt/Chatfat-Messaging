@@ -942,8 +942,8 @@ func main() {
 	listen := flag.String("listen", "", "address to listen on, e.g. 0.0.0.0:3273 (required)")
 	backends := flag.String("backends", "", "comma-separated backend URLs, e.g. http://10.1.75.53:3274,http://10.1.75.53:3275")
 	healthPath := flag.String("health-path", "/healthz", "path probed on each backend (ChatFat exposes /healthz)")
-	healthInterval := flag.Duration("health-interval", time.Second, "how often to probe backends")
-	healthTimeout := flag.Duration("health-timeout", 800*time.Millisecond, "per-probe timeout")
+	healthInterval := flag.Duration("health-interval", 250*time.Millisecond, "how often to probe backends")
+	healthTimeout := flag.Duration("health-timeout", 600*time.Millisecond, "per-probe timeout")
 	// Generous, because GET /feed returns every stored message and the backend
 	// writes no headers until it has built the whole response. A tight value
 	// here turns a slow-but-working feed into a 504, which is what the grading

@@ -1,0 +1,34 @@
+{
+  "experiment": "test-feeds",
+  "target": "http://127.0.0.1:14200",
+  "users": 300,
+  "seed": 8087028767384000320,
+  "elapsed_s": 0.2,
+  "total_requests": 3805,
+  "posts": 3157,
+  "feeds": 648,
+  "successful": 3805,
+  "failed": 0,
+  "throughput_rps": 19389.14,
+  "messages_per_s": 16087.12,
+  "dropout_percent": 0,
+  "p50_ms": 11.08,
+  "p95_ms": 36.76,
+  "p99_ms": 43.64,
+  "mean_ms": 14.01,
+  "max_ms": 107.89,
+  "post_p50_ms": 11.9,
+  "post_p95_ms": 37.54,
+  "feed_p50_ms": 7.4,
+  "feed_p95_ms": 25.61,
+  "per_backend": {
+    "backend-1": 1134,
+    "backend-2": 1336,
+    "backend-3": 1335
+  },
+  "status_mix": {
+    "200": 648,
+    "201": 3157
+  },
+  "started_at": "2026-09-12T23:46:15+05:30"
+}

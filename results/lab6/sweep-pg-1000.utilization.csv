@@ -1,0 +1,2 @@
+t_s,system,role,cpu_percent,cpu_core_percent,lag_ms,in_flight_or_goroutines,rss_mb,note
+1.000,sys1,load-balancer,0.00,0.00,0.00,1468,0,127.0.0.1:14201=23045.68 127.0.0.1:14202=86618.02 127.0.0.1:14203=12762.84

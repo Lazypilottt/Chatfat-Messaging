@@ -42,7 +42,7 @@ services:
       POSTGRES_PASSWORD: chatfat
       POSTGRES_DB: chatfat
     ports:
-      - "5432:5432"
+      - "5204:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     # The app's depends_on waits on this, so a slow first start cannot race

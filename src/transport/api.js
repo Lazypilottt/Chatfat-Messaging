@@ -145,11 +145,21 @@ function flushBatch() {
       indexWritten(batch, inserted);
       for (const e of batch) e.resolve();
     })
-    .catch((err) => {
-      // Fail the whole batch rather than guess which row upset Postgres. Each
-      // caller then returns 500 and the client may retry — which is safe,
-      // because the id is the client's and the insert is idempotent.
-      for (const e of batch) e.reject(err);
+    .catch(async (err) => {
+      // One invalid row (e.g. malformed type, bad encoding, unexpected constraint)
+      // will fail the entire multi-row statement in PostgreSQL. Rather than
+      // failing all callers in the batch with 500, retry each entry individually.
+      log.warn(`batch insert failed (${err.message}); falling back to single-row retries`);
+      for (const e of batch) {
+        try {
+          const inserted = await repository.save(e.roomId, e.message);
+          indexWritten([e], inserted);
+          e.resolve();
+        } catch (singleErr) {
+          log.error(`single insert failed for message ${e.message && e.message.id}:`, singleErr.message);
+          e.reject(singleErr);
+        }
+      }
     });
 }
 
@@ -466,16 +476,16 @@ function gzipFull(entry) {
 async function handleFeed(req, res, url) {
   const room = await labRoom();
   const asked = Number(url.searchParams.get('limit'));
+  // With no limit param, return all messages in the room up to FEED_MAX (a safe ceiling
+  // preventing unbounded memory growth on tables with millions of rows). If a limit is
+  // specified, bound it between 1 and FEED_MAX.
   const limit = Number.isFinite(asked) && asked > 0
     ? Math.min(asked, config.FEED_MAX)
-    : config.FEED_LIMIT;
+    : config.FEED_MAX;
 
-  // There is one cache and it holds the newest FEED_LIMIT messages. Every
-  // caller shares it, and a smaller ?limit= is served as a suffix of the same
-  // bytes. Resolving at the requested size instead would mean two callers
-  // asking for different limits rebuilt each other's work on every request.
+  // Resolve with the actual effective limit requested rather than a hardcoded FEED_LIMIT.
   const { entry, mode, filled, reused } = await withFeedGate(
-    () => resolveFeed(room.id, config.FEED_LIMIT),
+    () => resolveFeed(room.id, limit),
   );
   const want = Math.min(limit, entry.n);
   let body = feedSlice(entry, want);
@@ -546,7 +556,7 @@ function startFeedWarmer() {
     if (running) return;
     running = true;
     labRoom()
-      .then((room) => withFeedGate(() => resolveFeed(room.id, config.FEED_LIMIT)))
+      .then((room) => withFeedGate(() => resolveFeed(room.id, config.FEED_MAX)))
       .catch((err) => log.warn(`feed warmer: ${err.message}`))
       .then(() => { running = false; }, () => { running = false; });
   }, config.FEED_WARM_MS);
@@ -577,14 +587,22 @@ async function resolveFeed(roomId, limit) {
   const missing = [];
   for (const id of keys) if (!feedIndex.has(id)) missing.push(id);
   if (missing.length) {
-    // Chunked, and deliberately in small chunks. Decrypting a chunk is
-    // synchronous, so the chunk size is how long the event loop is blocked at
-    // a stretch — and a backend that stops answering health probes gets
-    // evicted. A thousand messages is tens of milliseconds; the extra round
-    // trips cost well under a millisecond each over the bridge.
+    // Chunked to keep the synchronous CPU burst (AES-256-GCM decrypt +
+    // ECDSA P-256 verify inside rowToMessage) bounded per event-loop turn —
+    // a backend that stops answering health probes gets evicted.
+    //
+    // All chunk queries are dispatched concurrently so their DB round-trips
+    // overlap. Promises are then awaited in the original order: because
+    // rowToMessage runs synchronously inside byIds before it resolves, each
+    // await here is a genuine yield between bursts of CPU work, preserving
+    // the health-probe headroom the chunking was designed to provide.
     const CHUNK = 1000;
+    const pending = [];
     for (let i = 0; i < missing.length; i += CHUNK) {
-      const rows = await repository.byIds(roomId, missing.slice(i, i + CHUNK));
+      pending.push(repository.byIds(roomId, missing.slice(i, i + CHUNK)));
+    }
+    for (const p of pending) {
+      const rows = await p;
       for (const m of rows) feedIndex.set(m.id, JSON.stringify(toWire(m)));
     }
   }

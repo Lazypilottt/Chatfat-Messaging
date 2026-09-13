@@ -1,0 +1,30 @@
+{
+  "rooms": [
+    {
+      "id": "lab-room",
+      "name": "lab-room",
+      "createdAt": 1789222998740,
+      "createdBy": null,
+      "permanent": true,
+      "locked": false,
+      "kdf": null,
+      "verifier": null,
+      "keyEpoch": 0,
+      "lockedBy": null,
+      "lockedAt": null
+    },
+    {
+      "id": "feed",
+      "name": "feed",
+      "createdAt": 1789223029897,
+      "createdBy": null,
+      "permanent": true,
+      "locked": false,
+      "kdf": null,
+      "verifier": null,
+      "keyEpoch": 0,
+      "lockedBy": null,
+      "lockedAt": null
+    }
+  ]
+}

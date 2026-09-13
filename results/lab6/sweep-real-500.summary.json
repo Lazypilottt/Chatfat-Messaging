@@ -1,0 +1,34 @@
+{
+  "experiment": "sweep-real-500",
+  "target": "http://127.0.0.1:14200",
+  "users": 300,
+  "seed": 12118895922591529654,
+  "elapsed_s": 0.18,
+  "total_requests": 3783,
+  "posts": 3129,
+  "feeds": 654,
+  "successful": 3783,
+  "failed": 0,
+  "throughput_rps": 21048.45,
+  "messages_per_s": 17409.62,
+  "dropout_percent": 0,
+  "p50_ms": 8.91,
+  "p95_ms": 32,
+  "p99_ms": 79.92,
+  "mean_ms": 12.85,
+  "max_ms": 94.6,
+  "post_p50_ms": 9.65,
+  "post_p95_ms": 33.09,
+  "feed_p50_ms": 5.62,
+  "feed_p95_ms": 20.76,
+  "per_backend": {
+    "backend-1": 1326,
+    "backend-2": 1313,
+    "backend-3": 1144
+  },
+  "status_mix": {
+    "200": 654,
+    "201": 3129
+  },
+  "started_at": "2026-09-12T23:46:28+05:30"
+}
